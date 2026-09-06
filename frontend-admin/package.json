@@ -5,9 +5,9 @@
   "description": "Vireo — Next.js 15 edition (App Router + React 19 + Tailwind v4). Aurora design language on the shared --ax-* token core.",
   "license": "LicenseRef-Envato-Regular",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3000",
     "lint": "next lint"
   },
   "dependencies": {
