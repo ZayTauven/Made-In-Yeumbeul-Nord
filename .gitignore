@@ -1,0 +1,29 @@
+# Python / Django
+
+
+# Node / Next.js
+
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Env
+
+
+# Private files
+infos-prive.txt
+
+# CLAUDE STACK
+CLAUDE.md
+
+# REPOS PRIVATE
+_AUDIT
+.claude
+Assets
+tools
+PLAN & PRODUCT
+
+
