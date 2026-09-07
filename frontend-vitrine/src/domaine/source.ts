@@ -23,7 +23,7 @@
  */
 
 import { ETAPES, PROGRESSION_ETAPE, formaterFcfaCompact, formaterNombre } from './referentiels';
-import { jeuDeDonnees } from './generateur';
+import { DATE_REFERENCE, jeuDeDonnees } from './generateur';
 import type {
   Activite,
   Actualite,
@@ -47,6 +47,7 @@ import type {
   Production,
   Quartier,
   ResultatAttendu,
+  StatutActivite,
   SessionFormation,
 } from './types';
 
@@ -511,6 +512,235 @@ export async function obtenirActivite(code: string): Promise<Activite | null> {
 export async function listerJalons(options: { decisifsSeulement?: boolean } = {}): Promise<Jalon[]> {
   const liste = jeuDeDonnees().jalons;
   return options.decisifsSeulement ? liste.filter((j) => j.decisif) : liste;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Plan d'action : agrégats du tableau de bord de suivi
+ * ------------------------------------------------------------------------- */
+
+export interface ResumePlanAction {
+  total: number;
+  par_statut: Array<{ statut: StatutActivite; effectif: number }>;
+  charge_par_responsable: Array<{ responsable: string; activites: number }>;
+  budget_engage_fcfa: number;
+  budget_consomme_fcfa: number;
+  /** Part du budget engagé déjà consommée, 0–100. */
+  part_consommee: number;
+  avancement_moyen: number;
+  terminees: number;
+  /** Activités non achevées, tous statuts confondus. */
+  ouvertes: number;
+}
+
+/**
+ * `GET /api/activites/resume/`
+ * Tout ce que le tableau de bord de suivi affiche d'agrégé sur le plan d'action.
+ *
+ * Ces calculs vivent ici et non dans l'écran : le jour où Django les servira, la
+ * page ne bouge pas. Un écran qui compte lui-même ses activités est un écran à
+ * réécrire à la bascule.
+ */
+export async function resumePlanAction(): Promise<ResumePlanAction> {
+  const { activites } = jeuDeDonnees();
+
+  const ordre: StatutActivite[] = ['en_cours', 'terminee', 'planifiee', 'en_retard', 'suspendue'];
+  const engage = activites.reduce((s, a) => s + a.budget_prevu_fcfa, 0);
+  const consomme = activites.reduce((s, a) => s + a.budget_consomme_fcfa, 0);
+  const terminees = activites.filter((a) => a.statut === 'terminee').length;
+
+  const parResponsable = new Map<string, number>();
+  for (const a of activites) {
+    parResponsable.set(a.responsable, (parResponsable.get(a.responsable) ?? 0) + 1);
+  }
+
+  return {
+    total: activites.length,
+    par_statut: ordre.map((statut) => ({
+      statut,
+      effectif: activites.filter((a) => a.statut === statut).length,
+    })),
+    charge_par_responsable: [...parResponsable.entries()]
+      .map(([responsable, nombre]) => ({ responsable, activites: nombre }))
+      .sort((x, y) => y.activites - x.activites),
+    budget_engage_fcfa: engage,
+    budget_consomme_fcfa: consomme,
+    part_consommee: engage === 0 ? 0 : Math.round((consomme / engage) * 100),
+    avancement_moyen: moyenneEntiere(activites.map((a) => a.avancement)),
+    terminees,
+    ouvertes: activites.length - terminees,
+  };
+}
+
+/** Profondeur des séries d'en-tête : huit fins de mois glissantes. */
+const PROFONDEUR_SERIE = 8;
+
+/**
+ * `GET /api/suivi/kpis/?tableau=plan-action`
+ * Les quatre cartes d'en-tête du tableau de bord de suivi.
+ *
+ * Chaque valeur affichée est le dernier point de sa propre série, et chaque série
+ * applique à huit dates passées le prédicat exact qui définit la valeur. C'est ce
+ * qui garantit qu'une carte ne contredit pas le graphique placé dessous : une
+ * première version comptait les activités dont la fenêtre couvrait le jour, quand
+ * l'anneau comptait le statut — cinq d'un côté, quatre de l'autre, sur le même
+ * écran.
+ */
+export async function kpisPlanAction(): Promise<Kpi[]> {
+  const { activites, jalons, indicateurs } = jeuDeDonnees();
+
+  const bornes = Array.from({ length: PROFONDEUR_SERIE }, (_, i) => {
+    const d = new Date(DATE_REFERENCE);
+    d.setMonth(d.getMonth() - (PROFONDEUR_SERIE - 1 - i));
+    return d;
+  });
+
+  /*
+   * Approximation assumée sur les deux séries d'activités : l'achèvement n'est pas
+   * horodaté dans le modèle, donc « achevée » se lit sur l'avancement d'aujourd'hui.
+   * Le dernier point — celui qu'affiche la carte — reste exact ; les précédents
+   * donnent une forme, ce qui est tout ce qu'un sparkline prétend montrer.
+   * À remplacer par un champ `date_achevement` le jour où Django l'aura.
+   */
+  const achevee = (a: Activite, d: Date) => new Date(a.date_fin) < d && a.avancement === 100;
+
+  const serieTerminees = bornes.map((d) => activites.filter((a) => achevee(a, d)).length);
+  const serieJalons = bornes.map(
+    (d) => jalons.filter((j) => j.date_reelle !== null && new Date(j.date_reelle) <= d).length,
+  );
+  const serieEchues = bornes.map(
+    (d) => activites.filter((a) => new Date(a.date_fin) < d && a.avancement < 100).length,
+  );
+  const serieCadre = serieAvancementCadre(indicateurs, PROFONDEUR_SERIE);
+
+  const dernier = (serie: number[]) => serie[serie.length - 1];
+
+  return [
+    {
+      cle: 'terminees',
+      libelle: 'Activités terminées',
+      valeur: dernier(serieTerminees),
+      valeur_affichee: `${dernier(serieTerminees)} / ${activites.length}`,
+      unite: 'activités',
+      delta: variationSerie(serieTerminees),
+      tendance: tendanceSerie(serieTerminees),
+      etincelle: serieTerminees,
+      cible: activites.length,
+    },
+    {
+      cle: 'jalons',
+      libelle: 'Jalons atteints',
+      valeur: dernier(serieJalons),
+      valeur_affichee: `${dernier(serieJalons)} / ${jalons.length}`,
+      unite: 'jalons',
+      delta: variationSerie(serieJalons),
+      tendance: tendanceSerie(serieJalons),
+      etincelle: serieJalons,
+      cible: jalons.length,
+    },
+    {
+      cle: 'echues',
+      libelle: 'Activités échues non achevées',
+      valeur: dernier(serieEchues),
+      valeur_affichee: formaterNombre(dernier(serieEchues)),
+      unite: 'activités',
+      delta: variationSerie(serieEchues),
+      tendance: tendanceSerie(serieEchues),
+      // Un retard qui recule est une bonne nouvelle. Sans ce marqueur, la carte
+      // peindrait la baisse en rouge.
+      sens: 'decroissant',
+      etincelle: serieEchues,
+    },
+    {
+      cle: 'cadre',
+      libelle: 'Avancement du cadre logique',
+      valeur: dernier(serieCadre),
+      valeur_affichee: `${dernier(serieCadre)} %`,
+      unite: '%',
+      // En points, non en pourcentage relatif : passer de 33 % à 75 % est un gain
+      // de 42 points, et l'annoncer comme « +127 % » sur une carte qui affiche
+      // déjà « 75 % » ne peut que se lire de travers.
+      delta: variationPoints(serieCadre),
+      tendance: tendanceSerie(serieCadre),
+      etincelle: serieCadre,
+      cible: 100,
+    },
+  ];
+}
+
+/**
+ * Avancement global du cadre logique, relevé par relevé.
+ *
+ * Chaque indicateur porte l'historique de ses collectes ; la moyenne de leurs taux
+ * d'atteinte à un relevé donné est l'avancement du cadre à cette date. Rien n'est
+ * inventé : la courbe est la reconstitution des collectes passées.
+ */
+function serieAvancementCadre(indicateurs: Indicateur[], profondeur: number): number[] {
+  const longueur = Math.min(...indicateurs.map((i) => i.releves.length));
+  if (!Number.isFinite(longueur) || longueur === 0) return new Array(profondeur).fill(0);
+
+  const serie: number[] = [];
+  for (let rang = Math.max(0, longueur - profondeur); rang < longueur; rang += 1) {
+    serie.push(
+      moyenneEntiere(
+        indicateurs.map((i) => tauxAtteinte(i.releves[rang].valeur, i.valeur_cible, i.sens)),
+      ),
+    );
+  }
+  return serie;
+}
+
+/**
+ * Taux d'atteinte d'une valeur, plafonné à 100.
+ * Un indicateur décroissant — un délai à réduire — se lit dans l'autre sens :
+ * 118 jours pour une cible de 90 valent 76 %, pas 131 %.
+ */
+function tauxAtteinte(valeur: number, cible: number, sens: Indicateur['sens']): number {
+  if (sens === 'decroissant') {
+    return valeur === 0 ? 100 : Math.min(100, Math.round((cible / valeur) * 100));
+  }
+  return cible === 0 ? 0 : Math.min(100, Math.round((valeur / cible) * 100));
+}
+
+/**
+ * Variation en % sur toute la fenêtre de la série, à une décimale.
+ *
+ * Volontairement mesurée d'un bout à l'autre, et non entre les deux derniers
+ * points : le projet court sur vingt-six mois, et un écart de mois à mois y vaut
+ * zéro presque partout — trois cartes sur quatre affichaient « 0,0 % ». La
+ * variation décrit donc exactement la période que le sparkline dessine à côté
+ * d'elle, ce qui est aussi la seule lecture que ce couple autorise.
+ *
+ * La référence est le premier point non nul : partir de zéro ne donne pas une
+ * variation infinie, il donne une variation dont on ne sait rien.
+ */
+function variationSerie(serie: number[]): number {
+  const dernier = serie[serie.length - 1];
+  const reference = serie.find((v) => v !== 0);
+  if (reference === undefined || dernier === undefined) return 0;
+  return Math.round(((dernier - reference) / reference) * 1000) / 10;
+}
+
+/**
+ * Écart en points entre les deux extrémités d'une série déjà exprimée en
+ * pourcentage. La carte l'affiche suivi de « pts », jamais de « % ».
+ */
+function variationPoints(serie: number[]): number {
+  const dernier = serie[serie.length - 1];
+  const premier = serie[0];
+  if (dernier === undefined || premier === undefined) return 0;
+  return Math.round((dernier - premier) * 10) / 10;
+}
+
+function tendanceSerie(serie: number[]): 'hausse' | 'baisse' | 'stable' {
+  const v = variationSerie(serie);
+  if (v > 0) return 'hausse';
+  if (v < 0) return 'baisse';
+  return 'stable';
+}
+
+function moyenneEntiere(valeurs: number[]): number {
+  if (valeurs.length === 0) return 0;
+  return Math.round(valeurs.reduce((s, v) => s + v, 0) / valeurs.length);
 }
 
 /* ========================================================================= *

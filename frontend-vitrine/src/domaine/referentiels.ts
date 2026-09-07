@@ -354,6 +354,12 @@ export function formaterDate(iso: string): string {
   return `${d.getDate()} ${MOIS_COURTS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** « 2026-10-31 » → « oct. 2026 » — graduations d'un échéancier. */
+export function formaterMoisAnnee(iso: string): string {
+  const d = new Date(iso);
+  return `${MOIS_COURTS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /** « 2026-10-31 » → « 31 octobre 2026 ». */
 export function formaterDateLongue(iso: string): string {
   const d = new Date(iso);

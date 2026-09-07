@@ -45,6 +45,14 @@ export interface Kpi {
   etincelle: number[];
   /** Cible à atteindre, quand l'indicateur en a une. */
   cible?: number;
+  /**
+   * Sens d'amélioration. Absent vaut `croissant`.
+   * Sans cette information, une carte ne sait pas si une baisse est une bonne
+   * nouvelle : « activités échues en baisse de 12 % » doit se lire en vert, pas
+   * en rouge. Le backend doit donc la servir pour tout KPI qu'on cherche à
+   * faire diminuer.
+   */
+  sens?: 'croissant' | 'decroissant';
 }
 
 export type Tendance = 'hausse' | 'baisse' | 'stable';

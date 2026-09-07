@@ -1050,10 +1050,21 @@ function construireActivites(
   MODELES_ACTIVITES.forEach((modele, i) => {
     const id = i + 1;
 
-    // Les activités s'échelonnent sur les 20 mois du projet, en se chevauchant :
+    // Les activités s'échelonnent sur toute la durée du projet, en se chevauchant :
     // c'est ce qui rend le diagramme de Gantt lisible et non pas décoratif.
-    const debutJours = -520 + Math.round((i / MODELES_ACTIVITES.length) * 470) + entier(a, -18, 18);
-    const duree = entier(a, 45, 165);
+    //
+    // La fenêtre déborde volontairement la date de démonstration. Bornée au passé,
+    // elle ne produisait ni activité planifiée ni activité suspendue — les deux
+    // branches de statut correspondantes étaient inatteignables — et le plan
+    // d'action s'affichait intégralement en retard. Un projet présenté au maire
+    // a par construction des activités à venir : c'est même ce qui justifie la
+    // suite du financement.
+    const debutJours =
+      -520 + Math.round((i / (MODELES_ACTIVITES.length - 1)) * 640) + entier(a, -18, 18);
+    // Durées longues et donc chevauchantes : à 45-165 jours pour dix-huit
+    // activités réparties sur vingt-six mois, deux seulement couvraient la date
+    // du jour et le plan d'action paraissait à l'arrêt.
+    const duree = entier(a, 70, 260);
     const finJours = debutJours + duree;
 
     const echue = finJours < 0;
@@ -1157,7 +1168,11 @@ function intituleJalon(a: Alea, activite: string, index: number): string {
     'Restitution aux groupements',
     'Recette et clôture',
   ];
-  return `${modeles[(index + activite.length) % modeles.length]} — ${activite.toLowerCase()}`;
+  // L'intitulé ne reprend pas celui de l'activité : le jalon porte `activite_id`,
+  // c'est à l'écran de décider s'il affiche le rattachement. Le répéter ici
+  // produisait « Recette et clôture — mise en place de la logistique — Mise en
+  // place de la logistique » sur toute chronologie qui montre les deux.
+  return modeles[(index + activite.length) % modeles.length];
 }
 
 /* ------------------------------------------------------------------------- *

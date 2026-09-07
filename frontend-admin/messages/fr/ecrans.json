@@ -5,7 +5,6 @@
     "periode": "12 derniers mois",
     "exporter": "Exporter",
     "nouveauRapport": "Nouveau rapport",
-
     "progression": {
       "eyebrow": "Avancement",
       "titre": "Progression de l'accompagnement",
@@ -18,7 +17,6 @@
       "trimestre": "Trimestre",
       "annee": "Année"
     },
-
     "enveloppe": {
       "titre": "Enveloppe du projet",
       "libelle": "Montant décaissé",
@@ -29,7 +27,6 @@
       "rembourse": "Remboursé",
       "encours": "Encours"
     },
-
     "filieres": {
       "titre": "Répartition par filière",
       "options": "Options de la répartition par filière",
@@ -37,18 +34,15 @@
       "autres": "Autres filières",
       "aria": "Anneau de répartition des groupements par filière"
     },
-
     "topGroupements": {
       "titre": "Groupements les plus actifs",
       "sousTitre": "Chiffre d'affaires déclaré sur l'exercice",
       "voirAnnuaire": "Voir l'annuaire"
     },
-
     "quartiers": {
       "titre": "Implantation par quartier",
       "voirAnalyse": "Analyse détaillée"
     },
-
     "mouvements": {
       "titre": "Derniers mouvements financiers",
       "sousTitre": "Décaissements et remboursements",
@@ -64,10 +58,79 @@
         "rejete": "Rejeté"
       }
     },
-
     "journal": {
       "titre": "Activité récente",
       "voirTout": "Voir le journal d'audit"
+    }
+  },
+  "suivi": {
+    "titre": "Tableau de bord de suivi",
+    "sousTitre": "Avancement du plan d'action, jalons franchis et cadre logique du projet.",
+    "periode": "Depuis le lancement",
+    "exporter": "Rapport de suivi",
+    "nouvelleActivite": "Nouvelle activité",
+    "rafraichir": "Recharger l'écran",
+    "parcours": {
+      "eyebrow": "Accompagnement",
+      "titre": "Parcours d'accompagnement",
+      "sousTitre": "Groupements ayant franchi chaque étape, et effectif qui s'y trouve aujourd'hui",
+      "franchie": "Ont franchi l'étape",
+      "actuelle": "S'y trouvent aujourd'hui",
+      "aria": "Graphique en colonnes du parcours d'accompagnement des groupements, étape par étape"
+    },
+    "statuts": {
+      "titre": "Statut des activités",
+      "total": "Activités",
+      "aria": "Anneau de répartition des activités par statut",
+      "planifiee": "Planifiée",
+      "en_cours": "En cours",
+      "terminee": "Terminée",
+      "en_retard": "En retard",
+      "suspendue": "Suspendue"
+    },
+    "echeancier": {
+      "titre": "Échéancier des activités",
+      "sousTitre": "Activités ouvertes du plan d'action, colorées par axe stratégique",
+      "voirPlan": "Voir le plan d'action",
+      "barreAria": "{intitule} : {avancement} % réalisés, échéance au {echeance}"
+    },
+    "charge": {
+      "titre": "Charge par responsable",
+      "sousTitre": "Activités pilotées par agent de coordination",
+      "serie": "Activités pilotées",
+      "aria": "Barres horizontales du nombre d'activités par responsable"
+    },
+    "axes": {
+      "titre": "Avancement par axe stratégique",
+      "sousTitre": "Moyenne des taux d'atteinte des indicateurs de l'axe",
+      "indicateurs": "{atteints, plural, =0 {Aucun indicateur à la cible} one {# indicateur à la cible} other {# indicateurs à la cible}} sur {total}"
+    },
+    "budget": {
+      "titre": "Budget du plan d'action",
+      "libelle": "Consommé sur engagé",
+      "consomme": "{part} % consommés",
+      "restant": "{montant} non engagés",
+      "avancementTitre": "Avancement moyen des activités",
+      "ouvertes": "{ouvertes} activités encore ouvertes sur {total}"
+    },
+    "jalons": {
+      "titre": "Prochains jalons",
+      "voirTout": "Tous les jalons",
+      "dansJours": "{nombre, plural, =0 {Aujourd'hui} one {Dans # jour} other {Dans # jours}}",
+      "decisif": "Décisif",
+      "horsActivite": "Jalon institutionnel"
+    },
+    "plan": {
+      "titre": "Plan d'action",
+      "sousTitre": "Avancement, budget et échéance des activités ouvertes",
+      "voirTout": "Toutes les activités",
+      "colonneActivite": "Activité",
+      "colonneResponsable": "Responsable",
+      "colonneAvancement": "Avancement",
+      "colonneBudget": "Budget consommé",
+      "surEngage": "sur {montant} engagés",
+      "colonneEcheance": "Échéance",
+      "colonneStatut": "Statut"
     }
   }
 }
