@@ -1,0 +1,11 @@
+# API « Made in Yeumbeul Nord » — dépendances du backend
+# Django 5.2 est la version LTS (support jusqu'en avril 2028) : la démo du
+# 31 octobre 2026 et la maintenance qui suivra tiennent dans cette fenêtre.
+
+Django~=5.2.0
+djangorestframework~=3.16.0     # 3.15 s'arrête à Django 5.0, d'où le plancher
+django-cors-headers~=4.7.0      # les deux fronts appellent depuis 3000 et 3001
+django-filter~=25.1             # filtres déclaratifs des listes (filiere, quartier, etape…)
+drf-spectacular~=0.28.0         # schéma OpenAPI et Swagger
+psycopg[binary]~=3.2.0          # pilote PostgreSQL de 3e génération
+python-dotenv~=1.1.0            # lecture du .env local

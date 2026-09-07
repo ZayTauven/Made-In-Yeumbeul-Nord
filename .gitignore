@@ -50,3 +50,6 @@ tools
 PLAN & PRODUCT
 
 
+
+# Schéma OpenAPI régénérable
+django-api/schema.yml
