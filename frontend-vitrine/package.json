@@ -24,7 +24,7 @@
     "react-select": "^5.10.2",
     "react-toastify": "^11.0.5",
     "styled-components": "^6.1.19",
-    "swiper": "^11.2.6"
+    "swiper": "^12.2.0"
   },
   "devDependencies": {
     "@types/node": "^20",
