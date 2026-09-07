@@ -143,6 +143,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const messagesClient = {
     commun: messages.commun,
     chrome: messages.chrome,
+    ecrans: messages.ecrans,
   };
 
   return (

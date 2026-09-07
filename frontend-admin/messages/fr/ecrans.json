@@ -1,0 +1,73 @@
+{
+  "tableauBord": {
+    "titre": "Tableau de bord général",
+    "sousTitre": "Où en est l'accompagnement des 100 groupements de Yeumbeul Nord.",
+    "periode": "12 derniers mois",
+    "exporter": "Exporter",
+    "nouveauRapport": "Nouveau rapport",
+
+    "progression": {
+      "eyebrow": "Avancement",
+      "titre": "Progression de l'accompagnement",
+      "sousTitre": "Groupements accompagnés, comparé à l'exercice précédent",
+      "serieCourante": "Exercice en cours",
+      "seriePrecedente": "Exercice précédent",
+      "aria": "Graphique en aires du nombre de groupements accompagnés, comparé à l'exercice précédent",
+      "granularite": "Granularité",
+      "mois": "Mois",
+      "trimestre": "Trimestre",
+      "annee": "Année"
+    },
+
+    "enveloppe": {
+      "titre": "Enveloppe du projet",
+      "libelle": "Montant décaissé",
+      "mobilise": "sur {montant} mobilisés",
+      "enregistrer": "Enregistrer un décaissement",
+      "remboursements": "Remboursements",
+      "decaisse": "Décaissé",
+      "rembourse": "Remboursé",
+      "encours": "Encours"
+    },
+
+    "filieres": {
+      "titre": "Répartition par filière",
+      "options": "Options de la répartition par filière",
+      "totalLibelle": "Groupements",
+      "autres": "Autres filières",
+      "aria": "Anneau de répartition des groupements par filière"
+    },
+
+    "topGroupements": {
+      "titre": "Groupements les plus actifs",
+      "sousTitre": "Chiffre d'affaires déclaré sur l'exercice",
+      "voirAnnuaire": "Voir l'annuaire"
+    },
+
+    "quartiers": {
+      "titre": "Implantation par quartier",
+      "voirAnalyse": "Analyse détaillée"
+    },
+
+    "mouvements": {
+      "titre": "Derniers mouvements financiers",
+      "sousTitre": "Décaissements et remboursements",
+      "voirJournal": "Voir le journal",
+      "colonneLibelle": "Libellé",
+      "colonneCategorie": "Catégorie",
+      "colonneDate": "Date",
+      "colonneMontant": "Montant",
+      "colonneStatut": "Statut",
+      "statuts": {
+        "valide": "Validé",
+        "en_attente": "En attente",
+        "rejete": "Rejeté"
+      }
+    },
+
+    "journal": {
+      "titre": "Activité récente",
+      "voirTout": "Voir le journal d'audit"
+    }
+  }
+}

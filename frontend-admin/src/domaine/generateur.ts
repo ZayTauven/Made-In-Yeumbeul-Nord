@@ -1224,7 +1224,9 @@ function construireFormations(
     let certifies = 0;
 
     for (let k = 0; k < nombreSessions; k += 1) {
-      const debutJours = -entier(a, 20, 470);
+      // Une session sur six est encore à venir : un calendrier de formation qui
+      // n'annonce plus rien laisse penser que le programme est terminé.
+      const debutJours = chance(a, 0.17) ? entier(a, 4, 70) : -entier(a, 6, 470);
       const quartier = parmi(a, quartiers);
       const cible = entier(a, 18, 32);
       const terminee = debutJours < -3;
@@ -1419,6 +1421,8 @@ function construireFinancement(
       });
       idMouvement += 1;
 
+      const fenetreRemboursement = Math.max(1, -dateJours - 5);
+
       if (rembourse > 0) {
         mouvements.push({
           id: idMouvement,
@@ -1427,7 +1431,11 @@ function construireFinancement(
           contrepartie: g.nom,
           categorie: 'Remboursement',
           montant_fcfa: rembourse,
-          date: dansJours(dateJours + entier(a, 60, 330)),
+          // Un remboursement se situe entre son décaissement et aujourd'hui, jamais
+          // après : le tableau de bord affiche les derniers mouvements par date
+          // décroissante, et des remboursements datés de l'an prochain arrivaient
+          // en tête de liste.
+          date: dansJours(dateJours + entier(a, Math.min(20, fenetreRemboursement), fenetreRemboursement)),
           moyen: pondere(a, ['wave', 'orange_money', 'especes', 'virement'] as const, [38, 30, 18, 14]) as MoyenPaiement,
           statut: pondere(a, ['valide', 'en_attente'] as const, [92, 8]) as MouvementFinancier['statut'],
         });
