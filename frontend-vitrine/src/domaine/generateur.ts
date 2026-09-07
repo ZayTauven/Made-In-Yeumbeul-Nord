@@ -1391,8 +1391,20 @@ function construireFinancement(
       ) as TypeFinancement;
 
       const montant = entier(a, 2, 18) * 100_000;
-      const dateJours = -entier(a, 12, 500);
+      // Les appuis financiers ont commencé dès les premiers mois du projet, qui
+      // court sur vingt-six mois : les borner à cinq cents jours laissait trop
+      // peu d'échéances arrivées à terme pour que le suivi des remboursements
+      // ait quoi que ce soit à montrer — pas un seul dossier défaillant.
+      const dateJours = -entier(a, 12, 700);
       const remboursable = type === 'credit_rotatif' || type === 'fonds_de_roulement';
+
+      // Horizon de remboursement, en jours. Un crédit rotatif court sur un
+      // cycle annuel ; un fonds de roulement se rembourse sur la campagne, donc
+      // plus vite. Un horizon unique de douze mois ne laissait presque aucune
+      // échéance dépassée dans le jeu de démonstration, et donc aucun dossier
+      // défaillant à montrer — alors que c'est précisément le cas que la
+      // coordination doit savoir traiter.
+      const horizon = type === 'fonds_de_roulement' ? 270 : 365;
 
       // Le statut se tire d'abord, le montant remboursé en découle. L'inverse — tirer
       // une part remboursée puis en déduire le statut — ne produit jamais de
@@ -1402,12 +1414,22 @@ function construireFinancement(
       let rembourse = 0;
 
       if (remboursable) {
-        const echu = dateJours < -300;
-        statut = pondere(
-          a,
-          ['rembourse', 'remboursement_partiel', 'defaillant'] as const,
-          echu ? [58, 27, 15] : [22, 66, 12],
-        ) as Financement['statut'];
+        // L'échéance est fixée à un an après le décaissement. Tant qu'elle n'est
+        // pas passée, la défaillance n'existe pas : le tableau affichait sinon des
+        // dossiers « défaillants » dont la date de remboursement tombait l'année
+        // suivante, ce qu'aucun agent comptable ne laisserait passer.
+        const echeanceDepassee = dateJours + horizon < 0;
+        statut = echeanceDepassee
+          ? (pondere(
+              a,
+              ['rembourse', 'remboursement_partiel', 'defaillant'] as const,
+              [54, 26, 20],
+            ) as Financement['statut'])
+          : (pondere(
+              a,
+              ['decaisse', 'remboursement_partiel', 'rembourse'] as const,
+              [30, 58, 12],
+            ) as Financement['statut']);
 
         if (statut === 'rembourse') rembourse = montant;
         else if (statut === 'remboursement_partiel') {
@@ -1415,9 +1437,14 @@ function construireFinancement(
         }
       }
 
+      // Référence et objet sont capturés une fois : les mouvements de caisse qui
+      // en découlent doivent porter les mêmes, et non un second tirage.
+      const reference = `FIN-${String(id).padStart(4, '0')}`;
+      const objet = objetFinancement(a, type, g.filiere.nom);
+
       financements.push({
         id,
-        reference: `FIN-${String(id).padStart(4, '0')}`,
+        reference,
         groupement_id: g.id,
         groupement_nom: g.nom,
         type_financement: type,
@@ -1425,9 +1452,9 @@ function construireFinancement(
         montant_rembourse_fcfa: rembourse,
         bailleur: parmi(a, BAILLEURS),
         date_decaissement: dansJours(dateJours),
-        date_prevue_remboursement: remboursable ? dansJours(dateJours + 365) : null,
+        date_prevue_remboursement: remboursable ? dansJours(dateJours + horizon) : null,
         statut,
-        objet: objetFinancement(a, type, g.filiere.nom),
+        objet,
       });
 
       g.financement_recu_fcfa += montant;
@@ -1435,7 +1462,10 @@ function construireFinancement(
       mouvements.push({
         id: idMouvement,
         reference: `MVT-${String(idMouvement).padStart(5, '0')}`,
-        libelle: `Décaissement ${type === 'equipement' ? 'en équipement' : ''} — ${g.nom}`.replace('  ', ' '),
+        // Le libellé dit ce qui a été payé, la contrepartie dit à qui. Les faire
+        // porter la même information affichait « Décaissement — GIE Mbollo » et
+        // « GIE Mbollo » l'un sous l'autre dans le journal.
+        libelle: `${objet} · ${reference}`,
         contrepartie: g.nom,
         categorie: 'Décaissement',
         montant_fcfa: -montant,
@@ -1455,7 +1485,7 @@ function construireFinancement(
         mouvements.push({
           id: idMouvement,
           reference: `MVT-${String(idMouvement).padStart(5, '0')}`,
-          libelle: `Remboursement — ${g.nom}`,
+          libelle: `Échéance ${type === 'credit_rotatif' ? 'du crédit rotatif' : 'du fonds de roulement'} · ${reference}`,
           contrepartie: g.nom,
           categorie: 'Remboursement',
           montant_fcfa: rembourse,

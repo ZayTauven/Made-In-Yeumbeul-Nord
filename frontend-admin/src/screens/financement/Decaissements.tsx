@@ -1,302 +1,467 @@
 'use client';
 /*
- * Vireo Next.js — Ecommerce / Invoices (route "ecommerce/invoices").
+ * Décaissements — route « ecommerce/invoices ».
  *
- * Faithful re-expression of src/html/ecommerce/invoices.html: a 4-KPI strip over
- * a searchable, status-tabbed, sortable invoice table with bulk-select, a totals
- * tfoot row, empty state and pagination. The Alpine x-data (axInvoices) is ported
- * to React state; classes + ARIA match the reference 1:1.
+ * Adapté de l'écran « Invoices » de Vireo : bandeau de quatre indicateurs,
+ * onglets de statut chiffrés, table triable avec sélection multiple, ligne de
+ * totaux, état vide et pagination. Le contenu est l'appui financier du projet :
+ * subventions, crédits rotatifs, dotations en équipement, fonds de roulement.
+ *
+ * Une facture attend un paiement ; un décaissement attend, selon son type, un
+ * remboursement ou rien du tout. La colonne « Échéance » reste donc vide pour
+ * une subvention — ce n'est pas une donnée manquante, c'est la nature de l'aide.
+ *
+ * Composant client : filtres, tri, sélection et pagination en état local.
  */
-import { useMemo, useState, type ReactElement } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import type { ReactElement } from 'react';
+import { useTranslations } from 'next-intl';
 import { PageHead } from '../../components/shell/PageHead';
+import { Pagination } from '../../components/table/Pagination';
+import {
+  formaterDate,
+  formaterFcfa,
+  formaterFcfaCompact,
+  formaterNombre,
+  initiales,
+} from '../../domaine';
+import type { Financement, TypeFinancement } from '../../domaine';
 
-interface Invoice {
-  id: number; number: string; client: string; email: string; initials: string;
-  issued: string; due: string; amount: number; status: string; overdueDays: number; color: string;
-}
+type StatutFinancement = Financement['statut'];
+type Tri = 'recent' | 'montant_desc' | 'montant_asc' | 'groupement' | 'echeance';
 
-const C = {
-  cyan: 'var(--ax-viz-cyan)', violet: 'var(--ax-viz-violet)', pink: 'var(--ax-viz-pink)',
-  amber: 'var(--ax-viz-amber)', emerald: 'var(--ax-viz-emerald)', red: 'var(--ax-viz-red)', accent: 'var(--ax-accent)',
+const STATUTS: readonly StatutFinancement[] = [
+  'decaisse',
+  'remboursement_partiel',
+  'rembourse',
+  'defaillant',
+] as const;
+
+const TONALITE_STATUT: Record<StatutFinancement, string> = {
+  decaisse: 'info',
+  remboursement_partiel: 'warning',
+  rembourse: 'success',
+  defaillant: 'danger',
 };
 
-const STATUS_TABS = [
-  { id: '', label: 'All', count: 94 },
-  { id: 'paid', label: 'Paid', count: 71 },
-  { id: 'unpaid', label: 'Unpaid', count: 11 },
-  { id: 'overdue', label: 'Overdue', count: 7 },
-  { id: 'draft', label: 'Draft', count: 5 },
-];
-
-const INVOICES: Invoice[] = [
-  { id: 1, number: '#INV-2026-0142', client: 'Rossi Atelier Ltda.', email: 'finance@rossiatelier.com', initials: 'RA', issued: 'Jun 24, 2026', due: 'Jul 08, 2026', amount: 4820.0, status: 'unpaid', overdueDays: 0, color: C.cyan },
-  { id: 2, number: '#INV-2026-0141', client: 'Northwind Furniture', email: 'ap@northwind.co', initials: 'NF', issued: 'Jun 22, 2026', due: 'Jul 06, 2026', amount: 12640.0, status: 'paid', overdueDays: 0, color: C.violet },
-  { id: 3, number: '#INV-2026-0140', client: 'Clayhouse Ceramics', email: 'billing@clayhouse.io', initials: 'CC', issued: 'Jun 18, 2026', due: 'Jun 25, 2026', amount: 3180.0, status: 'overdue', overdueDays: 3, color: C.pink },
-  { id: 4, number: '#INV-2026-0139', client: 'Voltic Supply Co.', email: 'accounts@voltic.co', initials: 'VS', issued: 'Jun 15, 2026', due: 'Jun 29, 2026', amount: 7420.0, status: 'paid', overdueDays: 0, color: C.amber },
-  { id: 5, number: '#INV-2026-0138', client: 'Paperleaf Goods', email: 'hello@paperleaf.com', initials: 'PG', issued: 'Jun 12, 2026', due: 'Jun 19, 2026', amount: 2340.0, status: 'overdue', overdueDays: 9, color: C.emerald },
-  { id: 6, number: '#INV-2026-0137', client: 'Brassworks Atelier', email: 'pay@brassworks.studio', initials: 'BA', issued: 'Jun 10, 2026', due: 'Jun 24, 2026', amount: 5610.0, status: 'paid', overdueDays: 0, color: C.cyan },
-  { id: 7, number: '#INV-2026-0136', client: 'Inkwell Press', email: 'finance@inkwell.press', initials: 'IP', issued: 'Jun 08, 2026', due: 'Jul 22, 2026', amount: 1890.0, status: 'paid', overdueDays: 0, color: C.red },
-  { id: 8, number: '#INV-2026-0135', client: 'Slate & Pine', email: 'orders@slateandpine.com', initials: 'SP', issued: 'Jun 05, 2026', due: '—', amount: 3270.0, status: 'draft', overdueDays: 0, color: C.violet },
-  { id: 9, number: '#INV-2026-0134', client: 'Tundra Outdoors', email: 'billing@tundra.io', initials: 'TO', issued: 'Jun 02, 2026', due: 'Jun 16, 2026', amount: 9840.0, status: 'overdue', overdueDays: 12, color: C.amber },
-  { id: 10, number: '#INV-2026-0133', client: 'Lumière Studio', email: 'compta@lumiere.fr', initials: 'LS', issued: 'May 28, 2026', due: 'Jun 11, 2026', amount: 6120.0, status: 'paid', overdueDays: 0, color: C.accent },
-  { id: 11, number: '#INV-2026-0132', client: 'Driftwood Decor', email: 'ar@driftwood.shop', initials: 'DD', issued: 'May 24, 2026', due: 'Jun 07, 2026', amount: 2880.0, status: 'unpaid', overdueDays: 0, color: C.pink },
-  { id: 12, number: '#INV-2026-0131', client: 'Copperline Mugs', email: 'accounts@copperline.co', initials: 'CM', issued: 'May 20, 2026', due: '—', amount: 1450.0, status: 'draft', overdueDays: 0, color: C.emerald },
-];
-
-const money = (n: number) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const STATUS_PILL: Record<string, { cls: string; label: string; path: string }> = {
-  paid: { cls: 'ax-badge--success', label: 'Paid', path: 'M9 12l2 2l4 -4M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0' },
-  unpaid: { cls: 'ax-badge--info', label: 'Unpaid', path: 'M12 7v5l3 3M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0' },
-  overdue: { cls: 'ax-badge--danger', label: 'Overdue', path: 'M12 9v4M12 16h.01M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0' },
-  draft: { cls: 'ax-badge--neutral', label: 'Draft', path: 'M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3z' },
+/* Le tracé de l'icône de statut, en un seul `d` — c'est la forme du template. */
+const TRACE_STATUT: Record<StatutFinancement, string> = {
+  decaisse: 'M12 7v5l3 3M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0',
+  remboursement_partiel: 'M12 3v18M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0',
+  rembourse: 'M9 12l2 2l4 -4M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0',
+  defaillant:
+    'M12 9v4M12 16h.01M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0',
 };
 
-function StatusPill({ status }: { status: string }): ReactElement {
-  const m = STATUS_PILL[status] || STATUS_PILL.draft;
-  return (
-    <span className={`ax-badge ax-badge--soft ${m.cls} ax-badge--pill`}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 13, height: 13 }}><path d={m.path} /></svg>{m.label}
-    </span>
-  );
+/* Une teinte par type d'appui : la colonne se lit sans relire les libellés. */
+const TEINTE_TYPE: Record<TypeFinancement, string> = {
+  subvention: 'var(--ax-accent)',
+  credit_rotatif: 'var(--ax-viz-cyan)',
+  equipement: 'var(--ax-viz-violet)',
+  fonds_de_roulement: 'var(--ax-viz-amber)',
+};
+
+const ICONES_KPI: Record<string, ReactElement> = {
+  decaisse: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v18" /><path d="M17 8a4 4 0 0 0 -4 -3h-2a3.5 3.5 0 0 0 0 7h2a3.5 3.5 0 0 1 0 7h-2a4 4 0 0 1 -4 -3" /></svg>,
+  encours: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 7v5l3 3" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>,
+  rembourse: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 12l2 2l4 -4" /><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /></svg>,
+  defaillants: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" /><path d="M12 16h.01" /></svg>,
+};
+
+const PAR_PAGE = 20;
+
+export interface DonneesDecaissements {
+  financements: Financement[];
+  bailleurs: string[];
+  /**
+   * Date du jour, en ISO, décidée par le serveur. Sans elle le client la lirait
+   * lui-même, et une échéance dépassée changerait de couleur entre le rendu
+   * serveur et l'hydratation.
+   */
+  aujourdhui: string;
+  /** Libellé métier de chaque type, servi par la source. */
+  libelleType: Record<TypeFinancement, string>;
+  synthese: {
+    totalDecaisse: number;
+    encours: number;
+    totalRembourse: number;
+    defaillants: number;
+    tauxRemboursement: number;
+  };
 }
 
-export function Invoices() {
-  const [q, setQ] = useState('');
-  const [fStatus, setFStatus] = useState('');
-  const [fClient, setFClient] = useState('');
-  const [sort, setSort] = useState('newest');
-  const [selected, setSelected] = useState<number[]>([]);
+export function Decaissements({ donnees }: { donnees: DonneesDecaissements }) {
+  const t = useTranslations('ecrans');
+  const tc = useTranslations('commun');
 
-  const clientNames = useMemo(() => [...new Set(INVOICES.map((i) => i.client))].sort(), []);
+  const [recherche, setRecherche] = useState('');
+  const [statut, setStatut] = useState('');
+  const [bailleur, setBailleur] = useState('');
+  const [tri, setTri] = useState<Tri>('recent');
+  const [selection, setSelection] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    let r = INVOICES.filter((iv) => {
-      const term = q.trim().toLowerCase();
-      if (term && !(iv.number.toLowerCase().includes(term) || iv.client.toLowerCase().includes(term) || iv.email.toLowerCase().includes(term))) return false;
-      if (fStatus && iv.status !== fStatus) return false;
-      if (fClient && iv.client !== fClient) return false;
+  // Les compteurs d'onglets portent sur la liste complète et non sur la liste
+  // filtrée : un onglet dont le chiffre change quand on tape dans la recherche
+  // ne sert plus à naviguer.
+  const compteurs = useMemo(() => {
+    const parStatut = new Map<string, number>();
+    for (const f of donnees.financements) {
+      parStatut.set(f.statut, (parStatut.get(f.statut) ?? 0) + 1);
+    }
+    return parStatut;
+  }, [donnees.financements]);
+
+  const filtres = useMemo(() => {
+    const q = recherche.trim().toLowerCase();
+    const liste = donnees.financements.filter((f) => {
+      if (statut && f.statut !== statut) return false;
+      if (bailleur && f.bailleur !== bailleur) return false;
+      if (q && !`${f.reference} ${f.groupement_nom} ${f.objet}`.toLowerCase().includes(q)) return false;
       return true;
     });
-    const by: Record<string, (a: Invoice, b: Invoice) => number> = {
-      'amount-asc': (a, b) => a.amount - b.amount,
-      'amount-desc': (a, b) => b.amount - a.amount,
-      client: (a, b) => a.client.localeCompare(b.client),
-      status: (a, b) => a.status.localeCompare(b.status),
-      due: (a, b) => b.overdueDays - a.overdueDays,
-      newest: (a, b) => a.id - b.id,
+
+    const comparateurs: Record<Tri, (a: Financement, b: Financement) => number> = {
+      recent: (a, b) => b.date_decaissement.localeCompare(a.date_decaissement),
+      montant_desc: (a, b) => b.montant_fcfa - a.montant_fcfa,
+      montant_asc: (a, b) => a.montant_fcfa - b.montant_fcfa,
+      groupement: (a, b) => a.groupement_nom.localeCompare(b.groupement_nom, 'fr'),
+      // Sans échéance, l'appui n'est pas remboursable : il part en fin de liste.
+      echeance: (a, b) =>
+        (a.date_prevue_remboursement ?? '9999').localeCompare(b.date_prevue_remboursement ?? '9999'),
     };
-    if (by[sort]) r = [...r].sort(by[sort]);
-    return r;
-  }, [q, fStatus, fClient, sort]);
+    return [...liste].sort(comparateurs[tri]);
+  }, [donnees.financements, recherche, statut, bailleur, tri]);
 
-  const sumAll = filtered.reduce((t, i) => t + i.amount, 0);
-  const sumPaid = filtered.filter((i) => i.status === 'paid').reduce((t, i) => t + i.amount, 0);
-  const outstanding = filtered.filter((i) => i.status === 'unpaid' || i.status === 'overdue').reduce((t, i) => t + i.amount, 0);
+  const pages = Math.max(1, Math.ceil(filtres.length / PAR_PAGE));
+  const pageSure = Math.min(page, pages);
+  const debut = (pageSure - 1) * PAR_PAGE;
+  const affiches = filtres.slice(debut, debut + PAR_PAGE);
 
-  const allSelected = () => { const ids = filtered.map((i) => i.id); return ids.length > 0 && ids.every((id) => selected.includes(id)); };
-  const toggleAll = (on: boolean) => setSelected(on ? filtered.map((i) => i.id) : []);
-  const toggleSel = (id: number) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const totalPage = affiches.reduce((s, f) => s + f.montant_fcfa, 0);
+  const rembourseePage = affiches.reduce((s, f) => s + f.montant_rembourse_fcfa, 0);
+
+  const toutSelectionne = affiches.length > 0 && affiches.every((f) => selection.includes(f.id));
+  const basculerTout = (actif: boolean) =>
+    setSelection(actif ? affiches.map((f) => f.id) : []);
+  const basculer = (id: number) =>
+    setSelection((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const changerFiltre = (poser: () => void) => {
+    poser();
+    setPage(1);
+    setSelection([]);
+  };
+  const reinitialiser = () =>
+    changerFiltre(() => {
+      setRecherche('');
+      setStatut('');
+      setBailleur('');
+    });
 
   return (
     <>
       <PageHead
-        title="Invoices"
-        subtitle={(<><span className="ax-num">94</span> invoices this quarter — <span className="ax-num">7</span> overdue totalling <span className="ax-num">$18,240.00</span>.</>) as unknown as string}
+        title={t('decaissements.titre')}
+        subtitle={t('decaissements.sousTitre', {
+          nombre: donnees.financements.length,
+          montant: formaterFcfaCompact(donnees.synthese.totalDecaisse),
+        })}
         actions={
           <>
             <button type="button" className="ax-btn ax-btn--ghost">
               <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
-              <span className="ax-btn__label">Export</span>
+              <span className="ax-btn__label">{tc('actions.exporter')}</span>
             </button>
-            <Link className="ax-btn ax-btn--primary" href="/ecommerce/create-invoice">
+            <a className="ax-btn ax-btn--primary" href="/ecommerce/create-invoice">
               <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-              <span className="ax-btn__label">Create invoice</span>
-            </Link>
+              <span className="ax-btn__label">{t('decaissements.enregistrer')}</span>
+            </a>
           </>
         }
       />
 
       <div className="ax-dash-grid">
-        {/* KPI STRIP */}
-        <div className="ax-card ax-kpi ax-col--3" role="region" aria-label="Outstanding $42,180">
-          <div className="ax-card__body">
-            <div className="ax-kpi__top">
-              <span className="ax-kpi__icon ax-kpi__icon--c1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 7v5l3 3" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg></span>
-              <span className="ax-kpi__delta ax-kpi__delta--down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6l6 -6" /></svg>5.4%</span>
-            </div>
-            <div className="ax-kpi__label">Outstanding</div>
-            <div className="ax-kpi__value ax-num">$42,180</div>
-          </div>
-        </div>
-        <div className="ax-card ax-kpi ax-col--3" role="region" aria-label="Overdue $18,240">
-          <div className="ax-card__body">
-            <div className="ax-kpi__top">
-              <span className="ax-kpi__icon ax-kpi__icon--c4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" /><path d="M12 16h.01" /></svg></span>
-              <span className="ax-kpi__delta ax-kpi__delta--up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6 -6l6 6" /></svg>2 inv</span>
-            </div>
-            <div className="ax-kpi__label">Overdue</div>
-            <div className="ax-kpi__value ax-num" style={{ color: 'var(--ax-danger-500)' }}>$18,240</div>
-          </div>
-        </div>
-        <div className="ax-card ax-kpi ax-col--3" role="region" aria-label="Paid in last 30 days $128,940, up 9.1%">
-          <div className="ax-card__body">
-            <div className="ax-kpi__top">
-              <span className="ax-kpi__icon ax-kpi__icon--c2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 12l2 2l4 -4" /><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /></svg></span>
-              <span className="ax-kpi__delta ax-kpi__delta--up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6 -6l6 6" /></svg>9.1%</span>
-            </div>
-            <div className="ax-kpi__label">Paid · 30 days</div>
-            <div className="ax-kpi__value ax-num">$128,940</div>
-          </div>
-        </div>
-        <div className="ax-card ax-kpi ax-col--3" role="region" aria-label="Drafts 5">
-          <div className="ax-card__body">
-            <div className="ax-kpi__top">
-              <span className="ax-kpi__icon ax-kpi__icon--c3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3z" /><path d="M16 5l3 3" /></svg></span>
-            </div>
-            <div className="ax-kpi__label">Drafts</div>
-            <div className="ax-kpi__value ax-num">5</div>
-          </div>
-        </div>
+        {/* ===== BANDEAU ===== */}
+        <CarteChiffre
+          cle="decaisse"
+          libelle={t('decaissements.synthese.decaisse')}
+          valeur={formaterFcfaCompact(donnees.synthese.totalDecaisse)}
+          pastille="c1"
+        />
+        <CarteChiffre
+          cle="encours"
+          libelle={t('decaissements.synthese.encours')}
+          valeur={formaterFcfaCompact(donnees.synthese.encours)}
+          pastille="c3"
+        />
+        <CarteChiffre
+          cle="rembourse"
+          libelle={t('decaissements.synthese.rembourse')}
+          valeur={formaterFcfaCompact(donnees.synthese.totalRembourse)}
+          pastille="c2"
+          note={t('decaissements.synthese.tauxRemboursement', {
+            taux: donnees.synthese.tauxRemboursement,
+          })}
+        />
+        <CarteChiffre
+          cle="defaillants"
+          libelle={t('decaissements.synthese.defaillants')}
+          valeur={formaterNombre(donnees.synthese.defaillants)}
+          pastille="c4"
+          teinte={donnees.synthese.defaillants > 0 ? 'var(--ax-danger-500)' : undefined}
+        />
 
-        {/* INVOICE TABLE */}
-        <section className="ax-card ax-col--12" role="region" aria-label="Invoice list">
-          {/* status tabs */}
+        {/* ===== TABLE ===== */}
+        <section className="ax-card ax-col--12" role="region" aria-label={t('decaissements.tableTitre')}>
+          {/* Onglets de statut */}
           <div className="ax-card__header" style={{ paddingBottom: 0, border: 0 }}>
             <div className="ax-cluster" style={{ gap: 'var(--ax-space-1)', flexWrap: 'wrap' }}>
-              {STATUS_TABS.map((t) => (
-                <button key={t.id} type="button" className="ax-btn ax-btn--ghost ax-btn--sm" onClick={() => setFStatus(t.id)}
-                  style={fStatus === t.id ? { boxShadow: 'inset 0 -2px 0 var(--ax-accent)', color: 'var(--ax-accent)', borderRadius: 0 } : { borderRadius: 0 }}>
-                  <span>{t.label}</span>
-                  <span className="ax-badge ax-badge--soft ax-badge--neutral ax-badge--sm ax-num" style={{ marginInlineStart: 6 }}>{t.count}</span>
+              {['', ...STATUTS].map((s) => (
+                <button
+                  key={s || 'tous'}
+                  type="button"
+                  className="ax-btn ax-btn--ghost ax-btn--sm"
+                  onClick={() => changerFiltre(() => setStatut(s))}
+                  style={
+                    statut === s
+                      ? { boxShadow: 'inset 0 -2px 0 var(--ax-accent)', color: 'var(--ax-accent)', borderRadius: 0 }
+                      : { borderRadius: 0 }
+                  }
+                >
+                  <span>{s === '' ? t('decaissements.statuts.tous') : t(`decaissements.statuts.${s}`)}</span>
+                  <span className="ax-badge ax-badge--soft ax-badge--neutral ax-badge--sm ax-num" style={{ marginInlineStart: 6 }}>
+                    {s === '' ? donnees.financements.length : (compteurs.get(s) ?? 0)}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* toolbar */}
+          {/* Barre d'outils */}
           <div className="ax-card__header" style={{ flexWrap: 'wrap', gap: 'var(--ax-space-3)', borderTop: '1px solid var(--ax-border)' }}>
-            <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 320 }}>
+            <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 340 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ position: 'absolute', insetInlineStart: 11, top: '50%', transform: 'translateY(-50%)', width: 18, height: 18, color: 'var(--ax-text-subtle)' }}><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
-              <input type="search" className="ax-input" placeholder="Search invoice # or client…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingInlineStart: 36 }} aria-label="Search invoices" />
+              <input
+                type="search"
+                className="ax-input"
+                placeholder={t('decaissements.rechercher')}
+                value={recherche}
+                onChange={(e) => changerFiltre(() => setRecherche(e.target.value))}
+                style={{ paddingInlineStart: 36 }}
+                aria-label={t('decaissements.rechercher')}
+              />
             </div>
             <div className="ax-card__actions" style={{ flexWrap: 'wrap', gap: 'var(--ax-space-2)' }}>
-              <button type="button" className="ax-btn ax-btn--secondary ax-btn--sm">
-                <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /></svg>
-                <span className="ax-btn__label">This quarter</span>
-              </button>
-              <select className="ax-select ax-select--sm" value={fClient} onChange={(e) => setFClient(e.target.value)} aria-label="Filter by client" style={{ minWidth: 150 }}>
-                <option value="">All clients</option>
-                {clientNames.map((c) => (<option key={c} value={c}>{c}</option>))}
+              <select
+                className="ax-select ax-select--sm"
+                value={bailleur}
+                onChange={(e) => changerFiltre(() => setBailleur(e.target.value))}
+                aria-label={t('decaissements.filtrerBailleur')}
+                style={{ minWidth: 190 }}
+              >
+                <option value="">{t('decaissements.tousBailleurs')}</option>
+                {donnees.bailleurs.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
               </select>
-              <select className="ax-select ax-select--sm" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort invoices" style={{ minWidth: 140 }}>
-                <option value="newest">Newest</option>
-                <option value="due">Due date</option>
-                <option value="amount-desc">Amount: High</option>
-                <option value="amount-asc">Amount: Low</option>
-                <option value="client">Client</option>
-                <option value="status">Status</option>
+              <select
+                className="ax-select ax-select--sm"
+                value={tri}
+                onChange={(e) => setTri(e.target.value as Tri)}
+                aria-label={tc('table.trier')}
+                style={{ minWidth: 170 }}
+              >
+                <option value="recent">{t('decaissements.tri.recent')}</option>
+                <option value="echeance">{t('decaissements.tri.echeance')}</option>
+                <option value="montant_desc">{t('decaissements.tri.montantDesc')}</option>
+                <option value="montant_asc">{t('decaissements.tri.montantAsc')}</option>
+                <option value="groupement">{t('decaissements.tri.groupement')}</option>
               </select>
             </div>
           </div>
 
-          {/* bulk bar */}
-          {!!selected.length && (
+          {/* Barre d'actions groupées */}
+          {selection.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ax-space-3)', margin: 'var(--ax-space-4) var(--ax-space-5) 0', padding: 'var(--ax-space-2) var(--ax-space-4)', background: 'var(--ax-accent-wash)', border: '1px solid var(--ax-accent)', borderRadius: 'var(--ax-radius-md)', flexWrap: 'wrap' }}>
-              <b className="ax-num" style={{ color: 'var(--ax-accent)', fontSize: 'var(--ax-text-sm)' }}><span>{selected.length}</span> selected</b>
+              <b className="ax-num" style={{ color: 'var(--ax-accent)', fontSize: 'var(--ax-text-sm)' }}>
+                {tc('table.lignesSelectionnees', { nombre: selection.length })}
+              </b>
               <span style={{ width: 1, height: 18, background: 'var(--ax-border-strong)' }} />
-              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">Mark paid</button>
-              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">Send</button>
-              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">Download</button>
-              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm" style={{ color: 'var(--ax-danger-500)' }}>Delete</button>
+              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">{t('decaissements.actions.marquerRembourse')}</button>
+              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">{t('decaissements.actions.relancer')}</button>
+              <button type="button" className="ax-btn ax-btn--ghost ax-btn--sm">{t('decaissements.actions.telechargerPieces')}</button>
               <span style={{ flex: '1 1 auto' }} />
-              <button type="button" className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm" aria-label="Clear selection" onClick={() => setSelected([])}><svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg></button>
+              <button
+                type="button"
+                className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm"
+                aria-label={t('decaissements.actions.viderSelection')}
+                onClick={() => setSelection([])}
+              >
+                <svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
+              </button>
             </div>
           )}
 
-          {/* table */}
           <div className="ax-table-wrap">
             <table className="ax-table ax-table--hover">
               <thead className="ax-table__head">
                 <tr>
-                  <th className="ax-table__th" scope="col" style={{ width: 38 }}><input type="checkbox" className="ax-checkbox" aria-label="Select all" checked={allSelected()} onChange={(e) => toggleAll(e.target.checked)} /></th>
-                  <th className="ax-table__th" scope="col">Invoice</th>
-                  <th className="ax-table__th" scope="col">Client</th>
-                  <th className="ax-table__th" scope="col">Issued</th>
-                  <th className="ax-table__th" scope="col">Due</th>
-                  <th className="ax-table__th ax-table__th--num" scope="col">Amount</th>
-                  <th className="ax-table__th" scope="col">Status</th>
-                  <th className="ax-table__th" scope="col" style={{ width: 44 }} />
+                  <th className="ax-table__th" scope="col" style={{ width: 38 }}>
+                    <input
+                      type="checkbox"
+                      className="ax-checkbox"
+                      aria-label={t('decaissements.selectionnerTout')}
+                      checked={toutSelectionne}
+                      onChange={(e) => basculerTout(e.target.checked)}
+                    />
+                  </th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneReference')}</th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneGroupement')}</th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneType')}</th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneDate')}</th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneEcheance')}</th>
+                  <th className="ax-table__th ax-table__th--num" scope="col">{t('decaissements.colonneMontant')}</th>
+                  <th className="ax-table__th ax-table__th--num" scope="col">{t('decaissements.colonneRembourse')}</th>
+                  <th className="ax-table__th" scope="col">{t('decaissements.colonneStatut')}</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((iv) => (
-                  <tr key={iv.id} className="ax-table__row" style={selected.includes(iv.id) ? { background: 'var(--ax-accent-wash)' } : undefined}>
-                    <td className="ax-table__td"><input type="checkbox" className="ax-checkbox" checked={selected.includes(iv.id)} onChange={() => toggleSel(iv.id)} aria-label={'Select ' + iv.number} /></td>
-                    <td className="ax-table__td">
-                      <Link href="/ecommerce/invoice-details" className="ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-accent)', fontWeight: 'var(--ax-weight-semibold)', textDecoration: 'none' }}>{iv.number}</Link>
-                    </td>
-                    <td className="ax-table__td">
-                      <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
-                        <span className="ax-avatar ax-avatar--sm ax-avatar--squircle" style={{ background: `color-mix(in oklab,${iv.color} 18%,transparent)`, color: iv.color }}><span className="ax-avatar__initials">{iv.initials}</span></span>
-                        <div style={{ minWidth: 0 }}><div style={{ fontWeight: 'var(--ax-weight-medium)', color: 'var(--ax-text-strong)' }}>{iv.client}</div><div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)' }}>{iv.email}</div></div>
-                      </div>
-                    </td>
-                    <td className="ax-table__td ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-muted)' }}>{iv.issued}</td>
-                    <td className="ax-table__td ax-num" style={{ fontFamily: 'var(--ax-font-mono)', ...(iv.status === 'overdue' ? { color: 'var(--ax-danger-500)', fontWeight: 'var(--ax-weight-medium)' } : { color: 'var(--ax-text-muted)' }) }}>
-                      <span>{iv.due}</span>
-                      {iv.status === 'overdue' && <span style={{ fontSize: 'var(--ax-text-2xs)', display: 'block' }}>{iv.overdueDays + 'd overdue'}</span>}
-                    </td>
-                    <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-strong)', fontWeight: 'var(--ax-weight-semibold)' }}>{money(iv.amount)}</td>
-                    <td className="ax-table__td"><StatusPill status={iv.status} /></td>
-                    <td className="ax-table__td">
-                      <button type="button" className="ax-btn ax-btn--ghost ax-btn--icon ax-btn--sm" aria-label={'Actions for ' + iv.number}><svg className="ax-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg></button>
-                    </td>
-                  </tr>
-                ))}
+                {affiches.map((f) => {
+                  const teinte = TEINTE_TYPE[f.type_financement];
+                  // Échéance dépassée sans remboursement soldé : la date passe en
+                  // rouge. Comparaison de chaînes ISO, qui s'ordonnent comme des dates.
+                  const echue =
+                    f.date_prevue_remboursement !== null &&
+                    f.statut !== 'rembourse' &&
+                    f.date_prevue_remboursement < donnees.aujourdhui;
+                  return (
+                    <tr
+                      key={f.id}
+                      className="ax-table__row"
+                      style={selection.includes(f.id) ? { background: 'var(--ax-accent-wash)' } : undefined}
+                    >
+                      <td className="ax-table__td">
+                        <input
+                          type="checkbox"
+                          className="ax-checkbox"
+                          checked={selection.includes(f.id)}
+                          onChange={() => basculer(f.id)}
+                          aria-label={t('decaissements.selectionner', { reference: f.reference })}
+                        />
+                      </td>
+                      <td className="ax-table__td">
+                        <a
+                          href="/ecommerce/invoice-details"
+                          className="ax-num"
+                          style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-accent)', fontWeight: 'var(--ax-weight-semibold)', textDecoration: 'none' }}
+                        >
+                          {f.reference}
+                        </a>
+                        <div className="ax-text-truncate" style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)', maxWidth: 260 }}>
+                          {f.objet}
+                        </div>
+                      </td>
+                      <td className="ax-table__td">
+                        <div className="ax-cluster" style={{ gap: 'var(--ax-space-3)', flexWrap: 'nowrap' }}>
+                          {/* Avatar à initiales : un groupement n'a pas de portrait,
+                              et aucune photo du corpus ne doit lui en tenir lieu. */}
+                          <span className="ax-avatar ax-avatar--sm ax-avatar--squircle" style={{ background: `color-mix(in oklab,${teinte} 18%,transparent)`, color: teinte }}>
+                            <span className="ax-avatar__initials">{initiales(f.groupement_nom)}</span>
+                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="ax-text-truncate" style={{ fontWeight: 'var(--ax-weight-medium)', color: 'var(--ax-text-strong)', maxWidth: 220 }}>
+                              {f.groupement_nom}
+                            </div>
+                            <div style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)' }}>{f.bailleur}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="ax-table__td">
+                        <span className="ax-badge ax-badge--soft ax-badge--neutral ax-badge--pill">
+                          {donnees.libelleType[f.type_financement]}
+                        </span>
+                      </td>
+                      <td className="ax-table__td ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-muted)', whiteSpace: 'nowrap' }}>
+                        {formaterDate(f.date_decaissement)}
+                      </td>
+                      <td className="ax-table__td ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: echue ? 'var(--ax-danger-500)' : 'var(--ax-text-muted)', whiteSpace: 'nowrap' }}>
+                        {f.date_prevue_remboursement ? (
+                          formaterDate(f.date_prevue_remboursement)
+                        ) : (
+                          <span style={{ color: 'var(--ax-text-subtle)' }}>{t('decaissements.sansEcheance')}</span>
+                        )}
+                      </td>
+                      <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-strong)', fontWeight: 'var(--ax-weight-semibold)', whiteSpace: 'nowrap' }}>
+                        {formaterFcfa(f.montant_fcfa)}
+                      </td>
+                      <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: f.montant_rembourse_fcfa > 0 ? 'var(--ax-viz-emerald)' : 'var(--ax-text-subtle)', whiteSpace: 'nowrap' }}>
+                        {f.montant_rembourse_fcfa > 0 ? formaterFcfa(f.montant_rembourse_fcfa) : '—'}
+                      </td>
+                      <td className="ax-table__td">
+                        <span className={`ax-badge ax-badge--soft ax-badge--${TONALITE_STATUT[f.statut]} ax-badge--pill`}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 13, height: 13 }}>
+                            <path d={TRACE_STATUT[f.statut]} />
+                          </svg>
+                          {t(`decaissements.statuts.${f.statut}`)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-              {/* totals row */}
-              <tfoot>
-                <tr className="ax-table__row" style={{ background: 'var(--ax-surface-subtle)' }}>
-                  <td className="ax-table__td" colSpan={4} style={{ fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>Totals · <span className="ax-num">{filtered.length}</span> shown</td>
-                  <td className="ax-table__td" style={{ textAlign: 'right' }}>
-                    <span className="ax-badge ax-badge--soft ax-badge--success ax-badge--sm" style={{ borderRadius: 'var(--ax-radius-xs)' }}>Paid <span className="ax-num">{money(sumPaid)}</span></span>
-                  </td>
-                  <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-strong)', fontWeight: 'var(--ax-weight-semibold)' }}>{money(sumAll)}</td>
-                  <td className="ax-table__td" colSpan={2} style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-muted)' }}>Outstanding </span><span className="ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-danger-500)', fontWeight: 'var(--ax-weight-semibold)' }}>{money(outstanding)}</span>
-                  </td>
-                </tr>
-              </tfoot>
+              {affiches.length > 0 && (
+                <tfoot>
+                  <tr className="ax-table__row" style={{ background: 'var(--ax-surface-subtle)' }}>
+                    <td className="ax-table__td" colSpan={6} style={{ fontWeight: 'var(--ax-weight-semibold)', color: 'var(--ax-text-strong)' }}>
+                      {t('decaissements.totauxPage', { nombre: affiches.length })}
+                    </td>
+                    <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-text-strong)', fontWeight: 'var(--ax-weight-semibold)', whiteSpace: 'nowrap' }}>
+                      {formaterFcfa(totalPage)}
+                    </td>
+                    <td className="ax-table__td ax-table__td--num ax-num" style={{ fontFamily: 'var(--ax-font-mono)', color: 'var(--ax-viz-emerald)', whiteSpace: 'nowrap' }}>
+                      {formaterFcfa(rembourseePage)}
+                    </td>
+                    <td className="ax-table__td" />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
 
-          {/* empty */}
-          {!filtered.length && (
+          {affiches.length === 0 && (
             <div style={{ textAlign: 'center', padding: 'var(--ax-space-10) var(--ax-space-5)' }}>
-              <span className="ax-avatar ax-avatar--xl ax-avatar--squircle" style={{ background: 'var(--ax-surface-subtle)', color: 'var(--ax-text-subtle)', margin: '0 auto var(--ax-space-4)' }}><svg className="ax-avatar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 28, height: 28 }}><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 21v-16a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg></span>
-              <h3 style={{ color: 'var(--ax-text-strong)', fontFamily: 'var(--ax-font-display)', marginBottom: 'var(--ax-space-2)' }}>No invoices here</h3>
-              <p style={{ color: 'var(--ax-text-muted)', fontSize: 'var(--ax-text-sm)', marginBottom: 'var(--ax-space-4)' }}>Try a different status tab or clear your search.</p>
-              <button type="button" className="ax-btn ax-btn--secondary" onClick={() => { setQ(''); setFStatus(''); setFClient(''); }}>Show all invoices</button>
+              <span className="ax-avatar ax-avatar--xl ax-avatar--squircle" style={{ background: 'var(--ax-surface-subtle)', color: 'var(--ax-text-subtle)', margin: '0 auto var(--ax-space-4)' }}>
+                <svg className="ax-avatar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ width: 28, height: 28 }}><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M5 21v-16a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>
+              </span>
+              <h3 style={{ color: 'var(--ax-text-strong)', fontFamily: 'var(--ax-font-display)', marginBottom: 'var(--ax-space-2)' }}>
+                {tc('table.aucunResultat')}
+              </h3>
+              <p style={{ color: 'var(--ax-text-muted)', fontSize: 'var(--ax-text-sm)', marginBottom: 'var(--ax-space-4)' }}>
+                {tc('table.aucunResultatIndice')}
+              </p>
+              <button type="button" className="ax-btn ax-btn--secondary" onClick={reinitialiser}>
+                {tc('actions.reinitialiser')}
+              </button>
             </div>
           )}
 
-          {/* pagination */}
-          {!!filtered.length && (
+          {affiches.length > 0 && (
             <div className="ax-card__footer ax-flex" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ax-space-3)' }}>
-              <span className="ax-pagination__summary ax-num" style={{ fontFamily: 'var(--ax-font-mono)', fontSize: 'var(--ax-text-xs)' }}>Showing <span>{filtered.length}</span> of 94 invoices</span>
-              <nav className="ax-pagination" aria-label="Pagination">
-                <button type="button" className="ax-pagination__prev" disabled aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6l6 6" /></svg></button>
-                <ul className="ax-pagination__pages">
-                  <li><a href="#" className="ax-pagination__page is-active" aria-current="page">1</a></li>
-                  <li><a href="#" className="ax-pagination__page">2</a></li>
-                  <li><a href="#" className="ax-pagination__page">3</a></li>
-                  <li><span className="ax-pagination__ellipsis">…</span></li>
-                  <li><a href="#" className="ax-pagination__page">8</a></li>
-                </ul>
-                <button type="button" className="ax-pagination__next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg></button>
-              </nav>
+              <span className="ax-pagination__summary ax-num" style={{ fontFamily: 'var(--ax-font-mono)', fontSize: 'var(--ax-text-xs)' }}>
+                {tc('table.pagination', { debut: debut + 1, fin: debut + affiches.length, total: filtres.length })}
+              </span>
+              <Pagination
+                courante={pageSure}
+                total={pages}
+                onChanger={setPage}
+                etiquettes={{
+                  navigation: t('decaissements.pagination'),
+                  precedente: t('decaissements.pagePrecedente'),
+                  suivante: t('decaissements.pageSuivante'),
+                  page: (numero) => t('decaissements.allerPage', { numero }),
+                }}
+              />
             </div>
           )}
         </section>
@@ -305,4 +470,35 @@ export function Invoices() {
   );
 }
 
-export default Invoices;
+function CarteChiffre({
+  cle,
+  libelle,
+  valeur,
+  pastille,
+  teinte,
+  note,
+}: {
+  cle: string;
+  libelle: string;
+  valeur: string;
+  pastille: string;
+  teinte?: string;
+  note?: string;
+}) {
+  return (
+    <div className="ax-card ax-kpi ax-col--3" role="region" aria-label={`${libelle} : ${valeur}`}>
+      <div className="ax-card__body">
+        <div className="ax-kpi__top">
+          <span className={`ax-kpi__icon ax-kpi__icon--${pastille}`}>{ICONES_KPI[cle]}</span>
+        </div>
+        <div className="ax-kpi__label">{libelle}</div>
+        <div className="ax-kpi__value ax-num" style={teinte ? { color: teinte } : undefined}>{valeur}</div>
+        {note && (
+          <div style={{ marginTop: 6, fontSize: 'var(--ax-text-xs)', color: 'var(--ax-text-subtle)' }}>{note}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Decaissements;

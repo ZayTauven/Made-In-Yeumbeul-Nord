@@ -204,5 +204,191 @@
         "passable": "Passable"
       }
     }
+  },
+  "journal": {
+    "titre": "Journal d'audit",
+    "sousTitre": "Qui a saisi quelle donnée, et quand. La piste d'audit complète de la plateforme.",
+    "exporter": "Exporter en CSV",
+    "rechercher": "Rechercher un événement, un acteur, une cible…",
+    "filtrerActeur": "Filtrer par acteur",
+    "tousLesActeurs": "Tous les acteurs",
+    "categories": "Catégories d'événement",
+    "resultats": "{affiches} événements affichés sur {total}",
+    "plusAnciens": "Charger les événements plus anciens",
+    "filtres": {
+      "toutes": "Tout",
+      "groupement": "Groupements",
+      "production": "Productions",
+      "formation": "Formations",
+      "financement": "Financement",
+      "activite": "Activités",
+      "systeme": "Système"
+    }
+  },
+  "mouvements": {
+    "titre": "Journal des mouvements financiers",
+    "sousTitre": "Chaque entrée et chaque sortie de caisse du projet : décaissements aux groupements, remboursements du fonds rotatif.",
+    "periode": "Depuis le lancement",
+    "exporter": "Exporter en CSV",
+    "tableTitre": "Tous les mouvements",
+    "rechercher": "Rechercher une référence, un libellé, un groupement…",
+    "filtrerCategorie": "Filtrer par catégorie",
+    "filtrerMoyen": "Filtrer par moyen de paiement",
+    "filtrerStatut": "Filtrer par statut",
+    "toutesCategories": "Toutes les catégories",
+    "tousMoyens": "Tous les moyens de paiement",
+    "pagination": "Pagination du journal",
+    "pagePrecedente": "Page précédente",
+    "pageSuivante": "Page suivante",
+    "colonneSens": "Sens",
+    "colonneLibelle": "Libellé",
+    "colonneCategorie": "Catégorie",
+    "colonneMoyen": "Moyen",
+    "colonneReference": "Pièce",
+    "colonneDate": "Date",
+    "colonneMontant": "Montant",
+    "colonneStatut": "Statut",
+    "sens": {
+      "entree": "Entrée",
+      "sortie": "Sortie"
+    },
+    "statuts": {
+      "valide": "Validé",
+      "en_attente": "En attente",
+      "rejete": "Rejeté"
+    },
+    "synthese": {
+      "total": "Mouvements enregistrés",
+      "entrees": "Entrées de caisse",
+      "sorties": "Sorties de caisse",
+      "attente": "En attente de validation"
+    },
+    "allerPage": "Aller à la page {numero}"
+  },
+  "decaissements": {
+    "titre": "Décaissements",
+    "sousTitre": "{nombre} appuis financiers accordés depuis le lancement, pour {montant}.",
+    "enregistrer": "Enregistrer un décaissement",
+    "tableTitre": "Liste des décaissements",
+    "rechercher": "Rechercher une référence, un groupement, un objet…",
+    "filtrerBailleur": "Filtrer par bailleur",
+    "tousBailleurs": "Tous les bailleurs",
+    "selectionnerTout": "Sélectionner toute la page",
+    "selectionner": "Sélectionner le décaissement {reference}",
+    "sansEcheance": "Non remboursable",
+    "totauxPage": "Totaux · {nombre} lignes affichées",
+    "pagination": "Pagination des décaissements",
+    "pagePrecedente": "Page précédente",
+    "pageSuivante": "Page suivante",
+    "allerPage": "Aller à la page {numero}",
+    "colonneReference": "Référence",
+    "colonneGroupement": "Groupement",
+    "colonneType": "Type d'appui",
+    "colonneDate": "Décaissé le",
+    "colonneEcheance": "Échéance",
+    "colonneMontant": "Montant",
+    "colonneRembourse": "Remboursé",
+    "colonneStatut": "Statut",
+    "statuts": {
+      "tous": "Tous",
+      "decaisse": "Décaissé",
+      "remboursement_partiel": "Remboursement partiel",
+      "rembourse": "Remboursé",
+      "defaillant": "Défaillant"
+    },
+    "tri": {
+      "recent": "Plus récents",
+      "echeance": "Échéance la plus proche",
+      "montantDesc": "Montant décroissant",
+      "montantAsc": "Montant croissant",
+      "groupement": "Groupement (A–Z)"
+    },
+    "actions": {
+      "marquerRembourse": "Marquer remboursé",
+      "relancer": "Préparer une relance",
+      "telechargerPieces": "Télécharger les pièces",
+      "viderSelection": "Vider la sélection"
+    },
+    "synthese": {
+      "decaisse": "Total décaissé",
+      "encours": "Encours à recouvrer",
+      "rembourse": "Total remboursé",
+      "tauxRemboursement": "{taux} % du remboursable",
+      "defaillants": "Dossiers défaillants"
+    }
+  },
+  "jalons": {
+    "titre": "Jalons",
+    "sousTitre": "{atteints} jalons franchis sur {total} inscrits au calendrier du projet.",
+    "voirPlan": "Voir le plan d'action",
+    "eyebrow": "Calendrier du projet",
+    "filTitre": "Chronologie des jalons",
+    "filSousTitre": "Groupés par mois — les échéances à venir en premier",
+    "densite": "Densité de la chronologie",
+    "compacte": "Compacte",
+    "confortable": "Confortable",
+    "institutionnel": "Jalon institutionnel",
+    "decisif": "Décisif",
+    "retard": "{jours, plural, one {# jour de retard} other {# jours de retard}}",
+    "avance": "{jours, plural, one {# jour d'avance} other {# jours d'avance}}",
+    "atteintLe": "Atteint le {reelle} · prévu le {prevue}",
+    "dansJours": "{nombre, plural, =0 {aujourd'hui} one {dans # jour} other {dans # jours}}",
+    "plusAnciens": "Charger les jalons plus anciens",
+    "debutProjet": "Début du calendrier du projet",
+    "decisifsTitre": "Jalons décisifs",
+    "decisifsSousTitre": "Les rendez-vous qui engagent le projet",
+    "legendeTitre": "États du jalon",
+    "statuts": {
+      "atteint": "Atteint",
+      "a_venir": "À venir",
+      "manque": "Manqué"
+    },
+    "legende": {
+      "atteint": "{nombre} jalons franchis",
+      "a_venir": "{nombre} échéances devant nous",
+      "manque": "{nombre} échéances dépassées sans jalon posé",
+      "decisif": "{nombre} jalons mis en exergue"
+    }
+  },
+  "cartographie": {
+    "titre": "Cartographie",
+    "sousTitre": "{groupements} groupements géolocalisés dans les {quartiers} quartiers de Yeumbeul Nord.",
+    "eyebrow": "Couches",
+    "gererCouches": "Gérer les couches",
+    "exporter": "Exporter les points",
+    "controlesTitre": "Contrôles de la carte",
+    "controlesSousTitre": "Fond de plan, couches et filtres",
+    "fondDePlan": "Fond de plan",
+    "couches": "Couches",
+    "couchesQuartiers": "Périmètres des quartiers",
+    "couchesGroupements": "Groupements recensés",
+    "couchesDensite": "Densité d'accompagnement",
+    "couchesBoutiques": "Boutiques témoins",
+    "filtrerFiliere": "Filtrer par filière",
+    "carteTitre": "Territoire de Yeumbeul Nord",
+    "carteSousTitre": "Fond : {fond} · {marqueurs} marqueurs affichés",
+    "carteAria": "Carte de Yeumbeul Nord avec les groupements recensés et les périmètres de quartier",
+    "zoomAvant": "Zoom avant",
+    "zoomArriere": "Zoom arrière",
+    "ficheQuartier": "Quartier de {quartier}",
+    "population": "{nombre} habitants estimés",
+    "groupementsRecenses": "Groupements recensés",
+    "popupMembres": "membres",
+    "popupResponsable": "Responsable :",
+    "fonds": {
+      "positron": {
+        "nom": "Clair",
+        "detail": "Fond neutre, lisible au vidéoprojecteur"
+      },
+      "voyager": {
+        "nom": "Coloré",
+        "detail": "Voirie et repères apparents"
+      },
+      "sombre": {
+        "nom": "Sombre",
+        "detail": "Contraste inversé"
+      }
+    },
+    "partCommune": "Part de la commune"
   }
 }

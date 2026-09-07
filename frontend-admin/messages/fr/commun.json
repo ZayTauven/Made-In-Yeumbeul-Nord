@@ -5,7 +5,6 @@
     "devise": "Se rassembler pour compter sur soi-même",
     "tutelle": "Commune de Yeumbeul Nord"
   },
-
   "actions": {
     "ajouter": "Ajouter",
     "annuler": "Annuler",
@@ -25,7 +24,6 @@
     "voirTout": "Voir tout",
     "voirLaFiche": "Voir la fiche"
   },
-
   "validation": {
     "soumettre": "Soumettre à validation",
     "valider": "Valider",
@@ -39,7 +37,6 @@
       "rejete": "Rejeté"
     }
   },
-
   "table": {
     "aucunResultat": "Aucun résultat",
     "aucunResultatIndice": "Aucune donnée ne correspond à ces filtres. Élargissez la recherche ou réinitialisez.",
@@ -50,7 +47,6 @@
     "pagination": "{debut}–{fin} sur {total}",
     "trier": "Trier"
   },
-
   "filtres": {
     "titre": "Filtres",
     "toutesLesFilieres": "Toutes les filières",
@@ -59,7 +55,6 @@
     "tousLesStatuts": "Tous les statuts",
     "actifs": "{nombre, plural, =0 {Aucun filtre} one {# filtre actif} other {# filtres actifs}}"
   },
-
   "etapes": {
     "identifie": "Identifié",
     "forme": "Formé",
@@ -69,16 +64,16 @@
     "en_production": "En production",
     "autonome": "Autonome"
   },
-
   "unites": {
     "groupements": "{nombre, plural, =0 {Aucun groupement} one {# groupement} other {# groupements}}",
     "membres": "{nombre, plural, =0 {Aucun membre} one {# membre} other {# membres}}",
     "productions": "{nombre, plural, =0 {Aucune production} one {# production} other {# productions}}",
     "sessions": "{nombre, plural, =0 {Aucune session} one {# session} other {# sessions}}",
     "fcfa": "{montant} FCFA",
-    "pourcentage": "{valeur} %"
+    "pourcentage": "{valeur} %",
+    "evenements": "{nombre, plural, =0 {Aucun événement} one {# événement} other {# événements}}",
+    "jalons": "{nombre, plural, =0 {Aucun jalon} one {# jalon} other {# jalons}}"
   },
-
   "indicateur": {
     "cible": "Cible",
     "reference": "Valeur de référence",
@@ -92,7 +87,6 @@
     "tendanceStable": "Stable",
     "sensDecroissant": "Indicateur à faire baisser"
   },
-
   "temps": {
     "aujourdhui": "Aujourd'hui",
     "cetteSemaine": "Cette semaine",
@@ -102,7 +96,6 @@
     "periodePrecedente": "Période précédente",
     "aLInstant": "À l'instant"
   },
-
   "paiement": {
     "wave": "Wave",
     "orange_money": "Orange Money",
@@ -110,7 +103,6 @@
     "especes": "Espèces",
     "virement": "Virement bancaire"
   },
-
   "etat": {
     "aucuneDonnee": "Aucune donnée",
     "aucuneDonneeIndice": "Rien à afficher pour le moment.",
@@ -119,7 +111,6 @@
     "horsLigne": "Hors ligne",
     "horsLigneIndice": "La plateforme fonctionne sur les données déjà chargées."
   },
-
   "accessibilite": {
     "ouvrirLeMenu": "Ouvrir le menu",
     "fermerLeMenu": "Fermer le menu",

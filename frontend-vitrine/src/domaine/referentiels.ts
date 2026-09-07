@@ -354,6 +354,31 @@ export function formaterDate(iso: string): string {
   return `${d.getDate()} ${MOIS_COURTS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Heure locale sur deux chiffres : « 09:31 ». */
+export function formaterHeure(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * En-tête de groupe d'un fil chronologique : « Aujourd'hui », « Hier », puis la
+ * date. On compare des jours civils et non des écarts de 24 heures — sans quoi un
+ * événement de 23 h 50 et un autre de 00 h 10 tombent dans le même groupe.
+ */
+export function formaterJourRelatif(iso: string, maintenant = new Date()): string {
+  const jour = new Date(iso);
+  const debutJour = new Date(jour.getFullYear(), jour.getMonth(), jour.getDate());
+  const debutAujourdhui = new Date(
+    maintenant.getFullYear(),
+    maintenant.getMonth(),
+    maintenant.getDate(),
+  );
+  const ecart = Math.round((debutAujourdhui.getTime() - debutJour.getTime()) / 86_400_000);
+  if (ecart === 0) return "Aujourd'hui";
+  if (ecart === 1) return 'Hier';
+  return formaterDate(iso);
+}
+
 /** « 2026-10-31 » → « oct. » — abscisses d'une série mensuelle. */
 export function formaterMoisCourt(iso: string): string {
   return MOIS_COURTS[new Date(iso).getMonth()];
