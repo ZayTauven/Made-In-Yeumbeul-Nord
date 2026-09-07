@@ -72,7 +72,8 @@
     "fcfa": "{montant} FCFA",
     "pourcentage": "{valeur} %",
     "evenements": "{nombre, plural, =0 {Aucun événement} one {# événement} other {# événements}}",
-    "jalons": "{nombre, plural, =0 {Aucun jalon} one {# jalon} other {# jalons}}"
+    "jalons": "{nombre, plural, =0 {Aucun jalon} one {# jalon} other {# jalons}}",
+    "dossiers": "{nombre, plural, =0 {Aucun dossier} one {# dossier} other {# dossiers}}"
   },
   "indicateur": {
     "cible": "Cible",
@@ -118,5 +119,11 @@
     "changerDeTheme": "Changer de thème",
     "notifications": "Notifications",
     "filDAriane": "Fil d'Ariane"
+  },
+  "statutsJuridiques": {
+    "informel": "Groupement informel",
+    "gie": "Groupement d'intérêt économique",
+    "association": "Association",
+    "cooperative": "Coopérative"
   }
 }

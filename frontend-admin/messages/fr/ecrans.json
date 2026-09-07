@@ -390,5 +390,125 @@
       }
     },
     "partCommune": "Part de la commune"
+  },
+  "groupements": {
+    "titre": "Annuaire des groupements",
+    "sousTitre": "{nombre} groupements recensés dans la commune, {membres} membres au total.",
+    "recenser": "Recenser un groupement",
+    "sousNavigation": "Sections du module Groupements",
+    "listeTitre": "Tous les groupements",
+    "legendeTable": "Groupements recensés, triables et filtrables",
+    "rechercher": "Rechercher un groupement, une responsable…",
+    "modeAffichage": "Mode d'affichage",
+    "vueTable": "Vue tableau",
+    "vueCartes": "Vue cartes",
+    "selectionnerPage": "Sélectionner toute la page",
+    "selectionner": "Sélectionner {nom}",
+    "actionsLigne": "Actions sur la ligne",
+    "partFemmes": "dont {part} % de femmes",
+    "pagination": "Pagination de l'annuaire",
+    "pagePrecedente": "Page précédente",
+    "pageSuivante": "Page suivante",
+    "allerPage": "Aller à la page {numero}",
+    "colonneGroupement": "Groupement",
+    "colonneFiliere": "Filière",
+    "colonneQuartier": "Quartier",
+    "colonneMembres": "Membres",
+    "colonneParcours": "Parcours d'accompagnement",
+    "colonneChiffreAffaires": "Chiffre d'affaires",
+    "colonneValidation": "Fiche",
+    "onglets": {
+      "annuaire": "Annuaire",
+      "etapes": "Étapes d'accompagnement",
+      "candidats": "Groupements candidats",
+      "membres": "Répertoire des membres"
+    },
+    "actions": {
+      "changerEtape": "Changer d'étape",
+      "affecterAgent": "Affecter un agent",
+      "exporterFiche": "Exporter la fiche",
+      "viderSelection": "Vider la sélection"
+    },
+    "formulaire": {
+      "nom": "Nom du groupement",
+      "nomExemple": "GIE Takku Liggéey",
+      "responsable": "Responsable",
+      "responsableExemple": "Aminata Diop",
+      "telephone": "Téléphone",
+      "creer": "Enregistrer le groupement",
+      "mention": "La fiche partira en brouillon : elle devra être validée par la coordination avant d'apparaître sur la vitrine publique."
+    }
+  },
+  "fiche": {
+    "sousTitre": "{filiere} · {quartier} · groupement constitué le {depuis}.",
+    "retourAnnuaire": "Retour à l'annuaire",
+    "vuePublique": "Vue publique",
+    "modifier": "Modifier la fiche",
+    "identite": "Identité du groupement",
+    "sections": "Sections de la fiche",
+    "adresse": "Quartier de {quartier}",
+    "ninea": "{statut} · NINEA {ninea}",
+    "sansNinea": "{statut} · non formalisé",
+    "filieresSecondaires": "Filières secondaires",
+    "contacter": "Contacter",
+    "vous": "Vous",
+    "vosInitiales": "VO",
+    "tuiles": {
+      "membres": "Membres",
+      "partFemmes": "{part} % de femmes",
+      "productions": "Productions",
+      "enAlerte": "{nombre} sous le seuil d’alerte",
+      "stockSain": "Stocks au-dessus du seuil",
+      "chiffreAffaires": "Chiffre d'affaires",
+      "surExercice": "Déclaré sur l'exercice",
+      "appuiRecu": "Appui reçu"
+    },
+    "onglets": {
+      "apercu": "Vue d'ensemble",
+      "membres": "Membres",
+      "productions": "Productions",
+      "financements": "Financements",
+      "notes": "Notes de suivi"
+    },
+    "parcours": {
+      "titre": "Parcours d'accompagnement",
+      "sousTitre": "Étape {etape} sur {total}"
+    },
+    "stock": {
+      "titre": "Valeur du stock déclaré",
+      "sousTitre": "Prix unitaire multiplié par la quantité disponible, productions les mieux dotées",
+      "serie": "Valeur du stock",
+      "aria": "Barres horizontales de la valeur du stock par production",
+      "aucune": "Ce groupement n'a encore déclaré aucune production."
+    },
+    "membres": {
+      "colonneNom": "Membre",
+      "colonneRole": "Rôle",
+      "colonneAge": "Âge",
+      "colonneTelephone": "Téléphone",
+      "colonneFormations": "Formations",
+      "colonneAdhesion": "Adhésion",
+      "certifie": "{nombre} cert.",
+      "voirRepertoire": "Voir le répertoire complet des membres"
+    },
+    "productions": {
+      "stock": "Stock disponible",
+      "seuilAtteint": "seuil atteint",
+      "aucune": "Ce groupement n'a encore déclaré aucune production."
+    },
+    "financements": {
+      "colonneReference": "Référence",
+      "colonneObjet": "Objet",
+      "colonneBailleur": "Bailleur",
+      "colonneDate": "Décaissé le",
+      "colonneMontant": "Montant",
+      "colonneStatut": "Statut",
+      "aucun": "Ce groupement n'a encore reçu aucun appui financier.",
+      "voirTous": "Voir tous les décaissements"
+    },
+    "notes": {
+      "exemple": "Consigner une observation de terrain, une décision, une relance…",
+      "ajouter": "Ajouter la note"
+    }
   }
 }
