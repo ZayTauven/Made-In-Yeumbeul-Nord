@@ -24,7 +24,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getMessages } from 'next-intl/server';
 import { CustomizerProvider } from '../src/context/CustomizerContext';
 import '../src/styles/app.css';
 
@@ -128,6 +128,23 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // plus à l'attribut `lang`.
   const locale = await getLocale();
 
+  /*
+   * Seuls les espaces de noms réellement consommés par des composants clients
+   * traversent la frontière serveur/client.
+   *
+   * Sans cette sélection, `NextIntlClientProvider` hérite de tout le catalogue et
+   * l'embarque dans la charge utile de chaque page — dont `navigation`, ses
+   * 204 entrées, qu'aucun composant client ne lit : le manifeste porte déjà ses
+   * titres, ce catalogue n'existe que pour l'arrivée du wolof.
+   *
+   * Ajouter un espace ici le jour où un composant client en a besoin.
+   */
+  const messages = await getMessages();
+  const messagesClient = {
+    commun: messages.commun,
+    chrome: messages.chrome,
+  };
+
   return (
     <html lang={locale} dir="ltr" suppressHydrationWarning>
       <head>
@@ -142,10 +159,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body>
-        {/* Les messages et la locale sont hérités de la configuration serveur :
-            aucune prop à passer, et surtout aucun catalogue dupliqué dans le bundle
-            client au-delà de ce que les composants clients consomment réellement. */}
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messagesClient}>
           <CustomizerProvider>{children}</CustomizerProvider>
         </NextIntlClientProvider>
       </body>

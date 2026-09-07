@@ -54,8 +54,11 @@ export default async function RootLayout({
       </head>
 
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* Les messages et la locale sont hérités de la configuration serveur :
-            aucune prop à passer. Les trois contextes de la boutique sont montés
+        {/* Les messages et la locale sont hérités de la configuration serveur.
+            Les deux espaces de noms (commun, vitrine) sont consommés par des
+            composants clients : ils traversent donc tous deux la frontière, et il
+            n'y a rien à filtrer ici — à revoir si un espace serveur seul apparaît.
+            Les trois contextes de la boutique sont montés
             ici et NULLE PART AILLEURS — le doublon de src/app/page.tsx est une
             dette connue (CLAUDE.md §5, front vitrine). */}
         <NextIntlClientProvider>

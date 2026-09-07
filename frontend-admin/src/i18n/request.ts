@@ -27,7 +27,7 @@ import { COOKIE_LOCALE, FUSEAU, LOCALE_PAR_DEFAUT, estLocaleValide, type Locale 
  * Un chemin entièrement calculé serait invisible à l'analyse et les traductions
  * manqueraient en production.
  */
-const ESPACES = ['commun', 'navigation'] as const;
+const ESPACES = ['commun', 'chrome', 'navigation'] as const;
 
 async function chargerMessages(locale: Locale) {
   const entrees = await Promise.all(

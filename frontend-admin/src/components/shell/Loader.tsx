@@ -7,8 +7,11 @@
  * CSS uses to suppress it. Reuses the .ax-spinner component (no bespoke CSS).
  */
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export function Loader() {
+  // Nomme `traduire` et non `t` : l'effet ci-dessous utilise deja `t` pour son timeout.
+  const traduire = useTranslations('chrome');
   const [hidden, setHidden] = useState(false);
   const [removed, setRemoved] = useState(false);
 
@@ -33,7 +36,7 @@ export function Loader() {
       data-ax-loader-el
       role="status"
       aria-live="polite"
-      aria-label="Loading"
+      aria-label={traduire('chargement')}
       aria-hidden={hidden}
     >
       <span className="ax-spinner ax-spinner--lg" aria-hidden="true">

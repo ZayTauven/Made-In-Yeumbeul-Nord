@@ -10,8 +10,52 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Dropdown } from '../ui/Dropdown';
 import { useCustomizer } from '../../context/CustomizerContext';
+import { formaterFcfa } from '../../domaine';
+
+/*
+ * Contenu de démonstration de l'en-tête.
+ *
+ * Ces valeurs sont figées et non tirées au sort : l'en-tête est rendu sur chaque
+ * écran, et un contenu aléatoire changerait à chaque navigation.
+ *
+ * À brancher sur la source de données quand les écrans correspondants existeront —
+ * `listerCommandes()` et `journalActivite()` de `domaine/source.ts` servent déjà
+ * exactement ces formes.
+ *
+ * L'utilisatrice de démonstration porte un nom sénégalais et un avatar généré par
+ * IA : aucun portrait réel du corpus n'incarne une personne fictive (CLAUDE.md §5).
+ */
+const UTILISATRICE = {
+  nom: 'Aminata Diop',
+  courriel: 'aminata.diop@yeumbeulnord.sn',
+};
+
+const NOTIFICATIONS_NON_LUES = 2;
+
+const COMMANDES_EN_ATTENTE = 3;
+
+const COMMANDES_APERCU = [
+  {
+    photo: '/img/photos/thumbs/foire-stand-cosmetiques-vendeuse.webp',
+    nom: 'Beurre de karité pur — GIE Jàppo',
+    detail: '4 × 3 500 FCFA',
+  },
+  {
+    photo: '/img/photos/thumbs/marche-cereales-vendeuses.webp',
+    nom: 'Couscous de mil — Coopérative Teranga',
+    detail: '10 × 1 200 FCFA',
+  },
+  {
+    photo: '/img/photos/thumbs/restauration-vente-plats-rue.webp',
+    nom: 'Plateau traiteur — GIE Bokk Jom',
+    detail: '1 × 35 000 FCFA',
+  },
+];
+
+const TOTAL_APERCU = 4 * 3500 + 10 * 1200 + 35000;
 
 const ICON = {
   burger: (
@@ -37,16 +81,20 @@ const ICON = {
   ),
 };
 
-const LANGS: Array<[string, string]> = [
-  ['EN', 'English'],
-  ['ES', 'Español'],
-  ['FR', 'Français'],
-  ['AR', 'العربية'],
-  ['DE', 'Deutsch'],
-  ['ZH', '中文'],
-  ['IT', 'Italiano'],
-  ['RU', 'Русский'],
-];
+/*
+ * Langues proposées.
+ *
+ * Le template en offrait huit, purement décoratives. Le projet n'en sert qu'une :
+ * le français. Le wolof est prévu mais pas livré — l'ajouter ici sans catalogue
+ * `messages/wo/` afficherait des clés brutes.
+ *
+ * Attention le jour où une deuxième langue arrive : `c.setLang()` écrit dans
+ * `localStorage`, alors que `next-intl` lit la locale dans le cookie `ax:locale`
+ * (voir src/i18n/config.ts). Le sélecteur devra écrire le cookie et provoquer un
+ * nouveau rendu serveur, sinon il changera l'attribut `lang` sans changer un seul
+ * libellé.
+ */
+const LANGS: Array<[string, string]> = [['FR', 'Français']];
 
 export function Header({
   onCommand,
@@ -56,6 +104,7 @@ export function Header({
   onCustomizer: () => void;
 }) {
   const c = useCustomizer();
+  const t = useTranslations('chrome');
   const [full, setFull] = useState(false);
 
   useEffect(() => {
@@ -76,7 +125,7 @@ export function Header({
         type="button"
         className="ax-nav-toggle ax-icon-btn"
         onClick={c.toggleCollapsed}
-        aria-label="Toggle menu"
+        aria-label={t('enTete.basculerMenu')}
         aria-expanded={!c.collapsed}
       >
         {ICON.burger}
@@ -89,10 +138,10 @@ export function Header({
         onClick={onCommand}
         aria-haspopup="dialog"
         aria-controls="ax-command"
-        aria-label="Search or jump to"
+        aria-label={t('enTete.rechercher')}
       >
         {ICON.search}
-        <span className="ax-search__placeholder">Search or jump to…</span>
+        <span className="ax-search__placeholder">{t('enTete.rechercher')}</span>
         <kbd className="ax-search__keycap">⌘K</kbd>
       </button>
 
@@ -106,7 +155,7 @@ export function Header({
           <button
             type="button"
             className="ax-icon-btn ax-lang__trigger"
-            aria-label="Change language"
+            aria-label={t('enTete.changerLangue')}
             {...triggerProps}
             aria-expanded={open}
           >
@@ -136,7 +185,7 @@ export function Header({
         className="ax-fullscreen ax-icon-btn"
         onClick={toggleFullscreen}
         aria-pressed={full}
-        aria-label="Toggle fullscreen"
+        aria-label={t('enTete.pleinEcran')}
       >
         {!full ? (
           <svg className="ax-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" width={24} height={24} aria-hidden="true"><path d="M4 8v-2a2 2 0 0 1 2 -2h2" /><path d="M4 16v2a2 2 0 0 0 2 2h2" /><path d="M16 4h2a2 2 0 0 1 2 2v2" /><path d="M16 20h2a2 2 0 0 0 2 -2v-2" /></svg>
@@ -152,7 +201,7 @@ export function Header({
         data-ax-toggle="theme"
         onClick={c.toggleTheme}
         aria-pressed={c.themeResolved === 'dark'}
-        aria-label="Toggle dark mode"
+        aria-label={t('enTete.themeSombre')}
       >
         {c.themeResolved === 'dark' ? (
           <svg className="ax-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" width={24} height={24} aria-hidden="true"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></svg>
@@ -166,46 +215,63 @@ export function Header({
         className="ax-apps"
         panelClassName="ax-dropdown ax-apps__menu"
         trigger={({ open, triggerProps }) => (
-          <button type="button" className="ax-icon-btn ax-apps__trigger" aria-label="Open apps" {...triggerProps} aria-expanded={open}>
+          <button type="button" className="ax-icon-btn ax-apps__trigger" aria-label={t('enTete.applications')} {...triggerProps} aria-expanded={open}>
             {ICON.apps}
           </button>
         )}
       >
-        <p className="ax-dropdown__head">Quick apps</p>
+        <p className="ax-dropdown__head">{t('enTete.applications')}</p>
+        {/* Les destinations sont les slugs du manifeste de navigation. Les tuiles du
+            template pointaient vers la messagerie et le gestionnaire de fichiers ;
+            ce sont les modules du projet qu'un agent de la coordination ouvre. */}
         <div className="ax-apps__grid">
-          <AppTile to="/apps/email" label="Email" />
-          <AppTile to="/apps/chat" label="Chat" />
-          <AppTile to="/apps/calendar" label="Calendar" />
-          <AppTile to="/apps/kanban" label="Kanban" />
-          <AppTile to="/apps/file-manager" label="Files" />
-          <AppTile to="/apps/contacts" label="Contacts" />
-          <AppTile to="/ecommerce/invoices" label="Invoices" />
-          <AppTile to="/apps/notes" label="Notes" />
+          <AppTile to="/crm/companies" label={t('accesRapides.annuaire')} />
+          <AppTile to="/maps/leaflet" label={t('accesRapides.cartographie')} />
+          <AppTile to="/dashboards/projects" label={t('accesRapides.suivi')} />
+          <AppTile to="/dashboards/lms" label={t('accesRapides.formations')} />
+          <AppTile to="/ecommerce/invoices" label={t('accesRapides.decaissements')} />
+          <AppTile to="/apps/calendar" label={t('accesRapides.calendrier')} />
+          <AppTile to="/ecommerce/orders" label={t('accesRapides.commandes')} />
+          <AppTile to="/pages/activity-log" label={t('accesRapides.journal')} />
         </div>
-        <Link className="ax-dropdown__foot" href="/widgets">View all apps</Link>
+        <Link className="ax-dropdown__foot" href="/widgets">{t('enTete.voirTousLesModules')}</Link>
       </Dropdown>
 
-      {/* 8 · CART */}
+      {/*
+        8 · COMMANDES RECENTES (le panier du template)
+        La structure DOM et les classes .ax-cart__* sont conservees telles quelles :
+        la feuille de style les cible et les renommer casserait la mise en forme.
+        Seul le contenu change — un panier d'achat n'a rien a faire dans l'en-tete
+        d'un outil de suivi-evaluation, alors qu'un apercu des dernieres commandes
+        recues depuis la vitrine y a toute sa place.
+        A ARBITRER avec yn-front-admin : garder ce bloc, ou le retirer.
+      */}
       <Dropdown
         className="ax-cart"
         panelClassName="ax-dropdown ax-cart__menu"
         trigger={({ open, triggerProps }) => (
-          <button type="button" className="ax-icon-btn ax-cart__trigger" aria-label="Shopping cart, 3 items" {...triggerProps} aria-expanded={open}>
+          <button type="button" className="ax-icon-btn ax-cart__trigger" aria-label={t('commandes.aria', { nombre: COMMANDES_EN_ATTENTE })} {...triggerProps} aria-expanded={open}>
             {ICON.cart}
-            <span className="ax-badge-count" aria-hidden="true">3</span>
+            <span className="ax-badge-count" aria-hidden="true">{COMMANDES_EN_ATTENTE}</span>
           </button>
         )}
       >
-        <div className="ax-dropdown__head ax-cart__head"><span>Cart</span><span className="ax-cart__count">3 items</span></div>
+        <div className="ax-dropdown__head ax-cart__head">
+          <span>{t('commandes.titre')}</span>
+          <span className="ax-cart__count">{t('commandes.compte', { nombre: COMMANDES_EN_ATTENTE })}</span>
+        </div>
         <ul className="ax-cart__list" role="presentation">
-          <CartRow img="/img/productions/foire-stand-cosmetiques-vendeuse.webp" name="Aurora Wireless Buds" qty="1 × $129.00" />
-          <CartRow img="/img/productions/marche-cereales-vendeuses.webp" name="Verdigris Mechanical Keyboard" qty="1 × $189.00" />
-          <CartRow img="/img/productions/restauration-vente-plats-rue.webp" name="Glass Desk Mat — XL" qty="2 × $34.00" />
+          {COMMANDES_APERCU.map((ligne) => (
+            <CartRow key={ligne.nom} img={ligne.photo} name={ligne.nom} qty={ligne.detail} />
+          ))}
         </ul>
-        <div className="ax-cart__subtotal"><span>Subtotal</span><span className="ax-mono">$386.00</span></div>
+        <div className="ax-cart__subtotal">
+          <span>{t('commandes.total')}</span>
+          <span className="ax-mono">{formaterFcfa(TOTAL_APERCU)}</span>
+        </div>
         <div className="ax-cart__actions">
-          <Link className="ax-btn ax-btn--ghost ax-btn--sm" href="/ecommerce/cart">View cart</Link>
-          <Link className="ax-btn ax-btn--accent ax-btn--sm" href="/ecommerce/checkout">Checkout</Link>
+          <Link className="ax-btn ax-btn--ghost ax-btn--sm" href="/ecommerce/orders">{t('commandes.voirLesCommandes')}</Link>
+          <Link className="ax-btn ax-btn--accent ax-btn--sm" href="/vitrine/boutiques-temoins">{t('commandes.ouvrirLaVitrine')}</Link>
         </div>
       </Dropdown>
 
@@ -214,35 +280,35 @@ export function Header({
         className="ax-notif"
         panelClassName="ax-dropdown ax-notif__menu"
         panelRole="dialog"
-        panelAriaLabel="Notifications"
+        panelAriaLabel={t('enTete.notifications')}
         trigger={({ open, triggerProps }) => (
-          <button type="button" className="ax-icon-btn ax-notif__trigger" aria-label="Notifications, 2 unread" {...triggerProps} aria-haspopup="dialog" aria-expanded={open}>
+          <button type="button" className="ax-icon-btn ax-notif__trigger" aria-label={t('enTete.notificationsAria', { nombre: NOTIFICATIONS_NON_LUES })} {...triggerProps} aria-haspopup="dialog" aria-expanded={open}>
             {ICON.bell}
-            <span className="ax-badge-count ax-badge-count--dot" aria-hidden="true">2</span>
+            <span className="ax-badge-count ax-badge-count--dot" aria-hidden="true">{NOTIFICATIONS_NON_LUES}</span>
           </button>
         )}
       >
         <div className="ax-dropdown__head ax-notif__head">
-          <span>Notifications</span>
-          <button type="button" className="ax-notif__mark-all">Mark all read</button>
+          <span>{t('enTete.notifications')}</span>
+          <button type="button" className="ax-notif__mark-all">{t('enTete.marquerToutLu')}</button>
         </div>
         <ul className="ax-notif__list" role="presentation">
           <li className="ax-notif__row is-unread">
             <span className="ax-notif__chip"><img className="ax-avatar" src="/img/avatars/face-woman-4-96.webp" alt="" width={34} height={34} loading="lazy" /></span>
-            <span className="ax-notif__body"><b className="ax-notif__title">Mara Chen mentioned you</b><span className="ax-notif__text">“Can you review the Q3 revenue figures before the sync?”</span><time className="ax-notif__time ax-mono">2m ago</time></span>
-            <span className="ax-notif__dot" aria-label="Unread"></span>
+            <span className="ax-notif__body"><b className="ax-notif__title">{t('notifications.mention.titre')}</b><span className="ax-notif__text">{t('notifications.mention.texte')}</span><time className="ax-notif__time ax-mono">{t('notifications.mention.quand')}</time></span>
+            <span className="ax-notif__dot" aria-label={t('enTete.nonLue')}></span>
           </li>
           <li className="ax-notif__row is-unread">
             <span className="ax-notif__chip ax-notif__chip--success">{ICON.check}</span>
-            <span className="ax-notif__body"><b className="ax-notif__title">Payment received</b><span className="ax-notif__text">Invoice #INV-2049 was paid — $1,280.00.</span><time className="ax-notif__time ax-mono">1h ago</time></span>
-            <span className="ax-notif__dot" aria-label="Unread"></span>
+            <span className="ax-notif__body"><b className="ax-notif__title">{t('notifications.decaissement.titre')}</b><span className="ax-notif__text">{t('notifications.decaissement.texte')}</span><time className="ax-notif__time ax-mono">{t('notifications.decaissement.quand')}</time></span>
+            <span className="ax-notif__dot" aria-label={t('enTete.nonLue')}></span>
           </li>
           <li className="ax-notif__row">
             <span className="ax-notif__chip"><img className="ax-avatar" src="/img/avatars/face-man-2-96.webp" alt="" width={34} height={34} loading="lazy" /></span>
-            <span className="ax-notif__body"><b className="ax-notif__title">New follower</b><span className="ax-notif__text">Devin Park started following your store.</span><time className="ax-notif__time ax-mono">5h ago</time></span>
+            <span className="ax-notif__body"><b className="ax-notif__title">{t('notifications.declaration.titre')}</b><span className="ax-notif__text">{t('notifications.declaration.texte')}</span><time className="ax-notif__time ax-mono">{t('notifications.declaration.quand')}</time></span>
           </li>
         </ul>
-        <Link className="ax-dropdown__foot" href="/pages/notifications">View all notifications</Link>
+        <Link className="ax-dropdown__foot" href="/pages/notifications">{t('enTete.voirToutesNotifications')}</Link>
       </Dropdown>
 
       {/* 10 · PROFILE */}
@@ -250,21 +316,21 @@ export function Header({
         className="ax-profile"
         panelClassName="ax-dropdown ax-profile__menu"
         trigger={({ open, triggerProps }) => (
-          <button type="button" className="ax-profile__trigger" aria-label="Account menu" {...triggerProps} aria-expanded={open}>
-            <img className="ax-avatar ax-profile__avatar" src="/img/avatars/face-woman-1-96.webp" alt="Jacob Gerrald" width={32} height={32} />
+          <button type="button" className="ax-profile__trigger" aria-label={t('enTete.menuCompte')} {...triggerProps} aria-expanded={open}>
+            <img className="ax-avatar ax-profile__avatar" src="/img/avatars/face-woman-1-96.webp" alt={UTILISATRICE.nom} width={32} height={32} />
           </button>
         )}
       >
         <div className="ax-profile__card">
           <img className="ax-avatar" src="/img/avatars/face-woman-1-96.webp" alt="" width={40} height={40} loading="lazy" />
-          <span className="ax-profile__card-meta"><b>Jacob Gerrald</b><small>jacob@vireo.io</small></span>
+          <span className="ax-profile__card-meta"><b>{UTILISATRICE.nom}</b><small>{UTILISATRICE.courriel}</small></span>
         </div>
-        <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile">View Profile</Link>
-        <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile-settings">Account Settings</Link>
-        <Link className="ax-dropdown__item" role="menuitem" href="/pages/support">Support</Link>
-        <Link className="ax-dropdown__item" role="menuitem" href="/pages/activity-log">Activity Log</Link>
+        <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile">{t('enTete.voirProfil')}</Link>
+        <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile-settings">{t('enTete.parametres')}</Link>
+        <Link className="ax-dropdown__item" role="menuitem" href="/pages/support">{t('enTete.aide')}</Link>
+        <Link className="ax-dropdown__item" role="menuitem" href="/pages/activity-log">{t('enTete.journalAudit')}</Link>
         <div className="ax-dropdown__divider" role="separator"></div>
-        <Link className="ax-dropdown__item ax-dropdown__item--danger" role="menuitem" href="/pages/logout">Log Out</Link>
+        <Link className="ax-dropdown__item ax-dropdown__item--danger" role="menuitem" href="/pages/logout">{t('enTete.deconnexion')}</Link>
       </Dropdown>
 
       {/* 11 · CUSTOMIZER TRIGGER */}
@@ -275,7 +341,7 @@ export function Header({
         onClick={onCustomizer}
         aria-haspopup="dialog"
         aria-controls="ax-customizer"
-        aria-label="Open theme customizer"
+        aria-label={t('enTete.personnaliser')}
       >
         {ICON.cog}
       </button>
@@ -295,11 +361,12 @@ function AppTile({ to, label }: { to: string; label: string }) {
 }
 
 function CartRow({ img, name, qty }: { img: string; name: string; qty: string }) {
+  const t = useTranslations('chrome');
   return (
     <li className="ax-cart__row">
       <img className="ax-cart__thumb" src={img} alt="" width={40} height={40} loading="lazy" />
       <span className="ax-cart__meta"><b className="ax-cart__name">{name}</b><span className="ax-cart__qty ax-mono">{qty}</span></span>
-      <button type="button" className="ax-cart__remove" aria-label="Remove item">
+      <button type="button" className="ax-cart__remove" aria-label={t('commandes.retirer')}>
         <svg className="ax-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" width={24} height={24} aria-hidden="true"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
       </button>
     </li>

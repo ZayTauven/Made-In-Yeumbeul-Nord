@@ -8,24 +8,26 @@
  * (see CONVENTIONS.md → "Add one page").
  */
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PageHead } from '../components/shell/PageHead';
 import { manifest, slugFromPath } from '../lib/manifest';
 
 export function Placeholder() {
   const slug = slugFromPath(usePathname() || '/');
   const node = manifest.bySlug.get(slug);
-  const title = node?.title ?? 'Page';
+  const t = useTranslations('chrome');
+  const title = node?.title ?? t('placeholder.titreParDefaut');
 
   return (
     <>
-      <PageHead title={title} subtitle="Starter page — content not yet ported in this edition." />
+      <PageHead title={title} subtitle={t('placeholder.sousTitre')} />
       <div className="ax-dash-grid">
         <section className="ax-card ax-col--12" role="region" aria-label={title}>
           <div className="ax-card__body">
             <div className="ax-empty" style={{ textAlign: 'center', padding: 'var(--ax-space-8) var(--ax-space-4)' }}>
               <h2 className="ax-card__title" style={{ marginBottom: 'var(--ax-space-2)' }}>{title}</h2>
               <p style={{ color: 'var(--ax-text-muted)' }}>
-                This route is wired and the shell renders — port the real content here.
+                {t('placeholder.corps')}
               </p>
             </div>
           </div>
