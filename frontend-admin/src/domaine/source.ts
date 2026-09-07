@@ -17,7 +17,14 @@
  * `PLAN & PRODUCT/15-CONTRAT-API.md`.
  */
 
-import { ETAPES, PROGRESSION_ETAPE, formaterFcfaCompact, formaterNombre } from './referentiels';
+import {
+  ETAPES,
+  PROGRESSION_ETAPE,
+  formaterFcfaCompact,
+  formaterMoisCourt,
+  formaterNombre,
+  formaterPourcentage,
+} from './referentiels';
 import { DATE_REFERENCE, jeuDeDonnees } from './generateur';
 import type {
   Activite,
@@ -697,33 +704,33 @@ function tauxAtteinte(valeur: number, cible: number, sens: Indicateur['sens']): 
 }
 
 /**
- * Variation en % sur toute la fenêtre de la série, à une décimale.
+ * Variation en % depuis le point précédent de la série, à une décimale.
  *
- * Volontairement mesurée d'un bout à l'autre, et non entre les deux derniers
- * points : le projet court sur vingt-six mois, et un écart de mois à mois y vaut
- * zéro presque partout — trois cartes sur quatre affichaient « 0,0 % ». La
- * variation décrit donc exactement la période que le sparkline dessine à côté
- * d'elle, ce qui est aussi la seule lecture que ce couple autorise.
+ * C'est la seule lecture qu'une pastille de carte KPI autorise sans légende :
+ * « depuis la période précédente ». Mesurée d'un bout à l'autre de la série, elle
+ * afficherait « +5 141 % » sur un indicateur parti de douze pour atteindre six
+ * cent trente-quatre — exact, et parfaitement inutilisable.
  *
- * La référence est le premier point non nul : partir de zéro ne donne pas une
- * variation infinie, il donne une variation dont on ne sait rien.
+ * Une carte à « 0,0 % » n'est pas un défaut d'affichage : sur un projet de
+ * vingt-six mois, elle dit qu'il ne s'est rien passé ce mois-ci, ce qui est une
+ * information que la coordination doit voir.
  */
 function variationSerie(serie: number[]): number {
   const dernier = serie[serie.length - 1];
-  const reference = serie.find((v) => v !== 0);
-  if (reference === undefined || dernier === undefined) return 0;
-  return Math.round(((dernier - reference) / reference) * 1000) / 10;
+  const precedent = serie[serie.length - 2];
+  if (dernier === undefined || precedent === undefined || precedent === 0) return 0;
+  return Math.round(((dernier - precedent) / precedent) * 1000) / 10;
 }
 
 /**
- * Écart en points entre les deux extrémités d'une série déjà exprimée en
+ * Écart en points depuis le point précédent, pour une série déjà exprimée en
  * pourcentage. La carte l'affiche suivi de « pts », jamais de « % ».
  */
 function variationPoints(serie: number[]): number {
   const dernier = serie[serie.length - 1];
-  const premier = serie[0];
-  if (dernier === undefined || premier === undefined) return 0;
-  return Math.round((dernier - premier) * 10) / 10;
+  const precedent = serie[serie.length - 2];
+  if (dernier === undefined || precedent === undefined) return 0;
+  return Math.round((dernier - precedent) * 10) / 10;
 }
 
 function tendanceSerie(serie: number[]): 'hausse' | 'baisse' | 'stable' {
@@ -758,6 +765,194 @@ export async function listerSessions(filtres: { formation?: number; statut?: str
 /** `GET /api/certifications/` */
 export async function listerCertifications(): Promise<Certification[]> {
   return jeuDeDonnees().certifications;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Agrégats du tableau de bord des formations
+ * ------------------------------------------------------------------------- */
+
+export interface MoisFormation {
+  periode: string;
+  sessions: number;
+  participants: number;
+}
+
+export interface ResumeFormations {
+  total_modules: number;
+  sessions_tenues: number;
+  sessions_a_venir: number;
+  /** Somme des présences constatées — un membre venu à trois sessions compte trois fois. */
+  participations: number;
+  /** Membres distincts ayant suivi au moins une session achevée. */
+  membres_formes: number;
+  membres_certifies: number;
+  certificats_delivres: number;
+  taux_presence_moyen: number;
+  taux_certification_moyen: number;
+  /** Heures de formation effectivement dispensées, sessions achevées seulement. */
+  heures_dispensees: number;
+  cout_total_fcfa: number;
+  par_type: Repartition[];
+  activite_mensuelle: MoisFormation[];
+  formateurs: Array<{ nom: string; sessions: number; participants: number }>;
+}
+
+const LIBELLE_TYPE_MODULE: Record<Formation['type_module'], string> = {
+  technique: 'Technique métier',
+  gestion: 'Gestion',
+  commercial: 'Commercial',
+  organisationnel: 'Vie associative',
+};
+
+/**
+ * `GET /api/formations/resume/`
+ * Tout ce que le tableau de bord des formations affiche d'agrégé.
+ *
+ * `participations` et `membres_formes` ne sont pas le même nombre et ne doivent
+ * jamais être confondus : le premier compte les présences, le second les personnes.
+ * Un cycle de six sessions suivies par deux cents membres produit douze cents
+ * participations — l'annoncer comme « 1 200 membres formés » sur une commune qui en
+ * compte mille sept cents serait un mensonge visible à l'œil nu.
+ */
+export async function resumeFormations(): Promise<ResumeFormations> {
+  const { formations, sessions, certifications, statistiquesFormation } = jeuDeDonnees();
+
+  const tenues = sessions.filter((x) => x.statut === 'terminee');
+  const aVenir = sessions.filter((x) => x.statut === 'planifiee');
+  const parId = new Map(formations.map((f) => [f.id, f]));
+
+  const participations = tenues.reduce((s, x) => s + x.effectif_present, 0);
+  const heures = tenues.reduce((s, x) => s + (parId.get(x.formation_id)?.duree_heures ?? 0), 0);
+  const cout = tenues.reduce(
+    (s, x) => s + x.effectif_present * (parId.get(x.formation_id)?.cout_par_participant_fcfa ?? 0),
+    0,
+  );
+
+  const types = Object.keys(LIBELLE_TYPE_MODULE) as Array<Formation['type_module']>;
+  const totalParticipants = formations.reduce((s, f) => s + f.nombre_participants, 0);
+  const par_type: Repartition[] = types
+    .map((type, i) => {
+      const valeur = formations
+        .filter((f) => f.type_module === type)
+        .reduce((s, f) => s + f.nombre_participants, 0);
+      return {
+        libelle: LIBELLE_TYPE_MODULE[type],
+        slug: type,
+        valeur,
+        part: totalParticipants === 0 ? 0 : Math.round((valeur / totalParticipants) * 100),
+        teinte: `var(--ax-chart-${i + 1})`,
+      };
+    })
+    .filter((r) => r.valeur > 0);
+
+  const parFormateur = new Map<string, { sessions: number; participants: number }>();
+  for (const x of tenues) {
+    const courant = parFormateur.get(x.formateur) ?? { sessions: 0, participants: 0 };
+    courant.sessions += 1;
+    courant.participants += x.effectif_present;
+    parFormateur.set(x.formateur, courant);
+  }
+
+  return {
+    total_modules: formations.length,
+    sessions_tenues: tenues.length,
+    sessions_a_venir: aVenir.length,
+    participations,
+    membres_formes: statistiquesFormation.membresFormes,
+    membres_certifies: statistiquesFormation.membresCertifies,
+    certificats_delivres: certifications.length,
+    taux_presence_moyen: statistiquesFormation.tauxPresenceMoyen,
+    taux_certification_moyen: moyenneEntiere(formations.map((f) => f.taux_certification)),
+    heures_dispensees: heures,
+    cout_total_fcfa: cout,
+    par_type,
+    activite_mensuelle: activiteMensuelle(tenues),
+    formateurs: [...parFormateur.entries()]
+      .map(([nom, v]) => ({ nom, ...v }))
+      .sort((x, y) => y.sessions - x.sessions || y.participants - x.participants),
+  };
+}
+
+/** Sessions achevées et présences, mois par mois, sur les douze derniers mois. */
+function activiteMensuelle(tenues: SessionFormation[]): MoisFormation[] {
+  const mois: MoisFormation[] = [];
+  for (let recul = 11; recul >= 0; recul -= 1) {
+    const debut = new Date(DATE_REFERENCE);
+    debut.setMonth(debut.getMonth() - recul, 1);
+    debut.setHours(0, 0, 0, 0);
+    const fin = new Date(debut);
+    fin.setMonth(fin.getMonth() + 1);
+
+    const duMois = tenues.filter((x) => {
+      const d = new Date(x.date_fin);
+      return d >= debut && d < fin;
+    });
+    mois.push({
+      periode: formaterMoisCourt(debut.toISOString()),
+      sessions: duMois.length,
+      participants: duMois.reduce((s, x) => s + x.effectif_present, 0),
+    });
+  }
+  return mois;
+}
+
+/**
+ * `GET /api/suivi/kpis/?tableau=formations`
+ * Les quatre cartes d'en-tête du tableau de bord des formations.
+ *
+ * Trois d'entre elles sont des indicateurs du cadre logique : la carte affiche donc
+ * exactement la valeur que la coordination rapporte au bailleur, avec l'historique
+ * de ses collectes en sparkline. C'est le contraire d'un chiffre décoratif.
+ */
+export async function kpisFormations(): Promise<Kpi[]> {
+  const { indicateurs, sessions } = jeuDeDonnees();
+  const parCode = new Map(indicateurs.map((i) => [i.code, i]));
+
+  const carteIndicateur = (code: string, cle: string, libelle: string): Kpi => {
+    const i = parCode.get(code);
+    const serie = i ? i.releves.map((r) => r.valeur) : [0];
+    const pourcentage = i?.unite === '%';
+    return {
+      cle,
+      libelle,
+      valeur: i?.valeur_actuelle ?? 0,
+      valeur_affichee: pourcentage
+        ? formaterPourcentage(i?.valeur_actuelle ?? 0)
+        : formaterNombre(i?.valeur_actuelle ?? 0),
+      unite: i?.unite ?? '',
+      delta: pourcentage ? variationPoints(serie) : variationSerie(serie),
+      tendance: i?.tendance ?? 'stable',
+      sens: i?.sens,
+      etincelle: serie,
+      cible: i?.valeur_cible,
+    };
+  };
+
+  // Sessions achevées, cumulées mois par mois : la seule des quatre qui ne soit pas
+  // un indicateur du cadre logique, donc la seule à reconstituer ici.
+  const tenues = sessions.filter((x) => x.statut === 'terminee');
+  const serieSessions = Array.from({ length: PROFONDEUR_SERIE }, (_, k) => {
+    const borne = new Date(DATE_REFERENCE);
+    borne.setMonth(borne.getMonth() - (PROFONDEUR_SERIE - 1 - k));
+    return tenues.filter((x) => new Date(x.date_fin) <= borne).length;
+  });
+
+  return [
+    carteIndicateur('I2.1.1', 'membres_formes', 'Membres formés'),
+    {
+      cle: 'sessions',
+      libelle: 'Sessions tenues',
+      valeur: tenues.length,
+      valeur_affichee: formaterNombre(tenues.length),
+      unite: 'sessions',
+      delta: variationSerie(serieSessions),
+      tendance: tendanceSerie(serieSessions),
+      etincelle: serieSessions,
+      cible: sessions.length,
+    },
+    carteIndicateur('I2.1.2', 'certification', 'Taux de certification'),
+    carteIndicateur('I2.1.3', 'presence', 'Taux de présence aux sessions'),
+  ];
 }
 
 /* ========================================================================= *

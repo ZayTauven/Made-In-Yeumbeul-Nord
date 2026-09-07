@@ -132,5 +132,77 @@
       "colonneEcheance": "Échéance",
       "colonneStatut": "Statut"
     }
+  },
+  "formations": {
+    "titre": "Tableau de bord des formations",
+    "sousTitre": "{membres} membres formés à travers {modules} modules de renforcement de capacités.",
+    "periode": "Depuis le lancement",
+    "catalogue": "Catalogue des modules",
+    "planifier": "Planifier une session",
+    "activite": {
+      "eyebrow": "Déroulé",
+      "titre": "Activité de formation",
+      "sousTitre": "Sessions achevées et présences constatées, mois par mois",
+      "sessions": "Sessions tenues",
+      "participations": "Présences constatées",
+      "aria": "Colonnes des sessions tenues par mois, avec la courbe des présences constatées"
+    },
+    "types": {
+      "titre": "Répartition par type de module",
+      "total": "Présences",
+      "aria": "Anneau de répartition des présences par type de module"
+    },
+    "cycles": {
+      "titre": "Avancement des cycles",
+      "sousTitre": "Taux de certification par module, du plus suivi au moins suivi",
+      "voirTout": "Tous les modules",
+      "detail": "{sessions, plural, one {# session} other {# sessions}} · {participants} présences · {heures} h"
+    },
+    "qualite": {
+      "titre": "Qualité du dispositif",
+      "presence": "Taux de présence",
+      "certification": "Taux de certification",
+      "ariaPresence": "Jauge du taux de présence aux sessions, à {valeur} %",
+      "ariaCertification": "Jauge du taux de certification, à {valeur} %",
+      "heures": "Heures dispensées",
+      "certificats": "Certificats délivrés",
+      "investissement": "Investissement formation",
+      "aVenir": "Sessions à venir"
+    },
+    "prochaines": {
+      "titre": "Prochaines sessions",
+      "calendrier": "Calendrier",
+      "detail": "{formateur} · {effectif, plural, one {# place} other {# places}}"
+    },
+    "modules": {
+      "titre": "Modules les plus suivis",
+      "sousTitre": "Présences, sessions et certification",
+      "voirTout": "Tout le catalogue",
+      "colonneModule": "Module",
+      "colonneParticipants": "Présences",
+      "colonneSessions": "Sessions",
+      "colonneCertification": "Certification",
+      "colonneCout": "Coût / participant"
+    },
+    "formateurs": {
+      "titre": "Formateurs les plus sollicités",
+      "sousTitre": "Sessions animées et présences reçues",
+      "detail": "{sessions, plural, one {# session animée} other {# sessions animées}}"
+    },
+    "certifications": {
+      "titre": "Dernières certifications",
+      "sousTitre": "Dernier jury tenu, module par module",
+      "voirTout": "Toutes les certifications",
+      "colonneMembre": "Membre",
+      "colonneModule": "Module",
+      "colonneDate": "Date",
+      "colonneScore": "Score",
+      "colonneMention": "Mention",
+      "mentions": {
+        "excellent": "Très bien",
+        "bien": "Bien",
+        "passable": "Passable"
+      }
+    }
   }
 }

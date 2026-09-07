@@ -313,6 +313,8 @@ export interface JeuDeDonnees {
   formations: Formation[];
   sessions: SessionFormation[];
   certifications: Certification[];
+  /** Ce que les sessions tenues permettent de dire des personnes, et non des présences. */
+  statistiquesFormation: StatistiquesFormation;
   financements: Financement[];
   mouvements: MouvementFinancier[];
   commandes: Commande[];
@@ -383,7 +385,7 @@ function construire(): JeuDeDonnees {
   return {
     quartiers, filieres, groupements, membres, productions,
     axes, resultats, indicateurs, activites, jalons,
-    formations, sessions, certifications,
+    formations, sessions, certifications, statistiquesFormation: statistiques,
     financements, mouvements, commandes, actualites, journal, boutiques,
   };
 }
@@ -1290,6 +1292,12 @@ function construireFormations(
 
         // Toutes les présentes ne sont pas certifiées : le jury sanctionne.
         const partCertifiee = entre(a, 0.5, 0.88);
+
+        // Le jury se tient une à trois semaines après la session, et jamais après
+        // aujourd'hui : une session close il y a six jours produisait sinon des
+        // certificats datés de la semaine prochaine.
+        const finSession = debutJours + Math.ceil(module.heures / 6);
+        const jourJury = Math.min(-1, finSession + entier(a, 5, 18));
         for (const membreId of presentsIds) {
           membresFormes.add(membreId);
           if (!chance(a, partCertifiee)) continue;
@@ -1305,7 +1313,7 @@ function construireFormations(
             membre_nom: membre.nom_complet,
             groupement_nom: groupement.nom,
             formation_nom: module.nom,
-            date_certification: dansJours(debutJours + 14),
+            date_certification: dansJours(jourJury),
             score: entier(a, 58, 98),
             numero_certificat: `MYN-${2025 + (idCertification % 2)}-${String(idCertification).padStart(4, '0')}`,
           });

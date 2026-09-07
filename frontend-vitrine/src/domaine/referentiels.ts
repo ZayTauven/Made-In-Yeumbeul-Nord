@@ -354,6 +354,11 @@ export function formaterDate(iso: string): string {
   return `${d.getDate()} ${MOIS_COURTS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** « 2026-10-31 » → « oct. » — abscisses d'une série mensuelle. */
+export function formaterMoisCourt(iso: string): string {
+  return MOIS_COURTS[new Date(iso).getMonth()];
+}
+
 /** « 2026-10-31 » → « oct. 2026 » — graduations d'un échéancier. */
 export function formaterMoisAnnee(iso: string): string {
   const d = new Date(iso);
