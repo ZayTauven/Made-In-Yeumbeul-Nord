@@ -73,7 +73,8 @@
     "pourcentage": "{valeur} %",
     "evenements": "{nombre, plural, =0 {Aucun événement} one {# événement} other {# événements}}",
     "jalons": "{nombre, plural, =0 {Aucun jalon} one {# jalon} other {# jalons}}",
-    "dossiers": "{nombre, plural, =0 {Aucun dossier} one {# dossier} other {# dossiers}}"
+    "dossiers": "{nombre, plural, =0 {Aucun dossier} one {# dossier} other {# dossiers}}",
+    "appreciations": "{nombre, plural, =0 {Aucune appréciation} one {# appréciation} other {# appréciations}}"
   },
   "indicateur": {
     "cible": "Cible",

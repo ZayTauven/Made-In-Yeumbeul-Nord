@@ -44,6 +44,7 @@ import {
   slugifier,
 } from './referentiels';
 import { CLES_PHOTOS, PHOTOS, photosParFiliere, photosParTheme } from './photos.generated';
+import type { Photo } from './photos.generated';
 import type {
   Activite,
   Actualite,
@@ -511,7 +512,8 @@ function construireGroupements(
       date_formalisation: formalise ? dansJours(-entier(a, 60, 900)) : null,
       note_moyenne: Number(entre(a, 3.7, 5).toFixed(1)),
       nombre_appreciations: entier(a, 3, 84),
-      photo,
+      photo: photo.carte?.src ?? photo.hero?.src ?? photo.vignette?.src ?? '',
+      photo_cle: photo.cle,
       etat_validation: pondere(
         a,
         ['valide', 'soumis', 'brouillon', 'rejete'] as const,
@@ -601,13 +603,12 @@ function telephone(a: Alea): string {
  * Productions
  * ------------------------------------------------------------------------- */
 
-function photoPourFiliere(a: Alea, slugFiliere: string, graineStable: number): string {
+function photoPourFiliere(a: Alea, slugFiliere: string, graineStable: number): Photo {
   const candidates = photosParFiliere(slugFiliere);
   const source = candidates.length > 0 ? candidates : CLES_PHOTOS.map((c) => PHOTOS[c]);
   // L'indice dépend de l'identifiant, pas de l'ordre d'appel : une même entité
   // garde sa photo même si le générateur évolue ailleurs.
-  const photo = source[graineStable % source.length];
-  return photo.carte?.src ?? photo.hero?.src ?? photo.vignette?.src ?? '';
+  return source[graineStable % source.length];
 }
 
 function construireProductions(
@@ -659,10 +660,13 @@ function construireProductions(
         stock_disponible: stock,
         seuil_alerte: 12,
         disponible: stock > 0,
-        photo,
-        photos_additionnelles: [],
-        note_moyenne: Number(entre(a, 3.6, 5).toFixed(1)),
-        nombre_appreciations: entier(a, 0, 47),
+        photo: photo.carte?.src ?? photo.hero?.src ?? photo.vignette?.src ?? '',
+        photo_cle: photo.cle,
+        photos_additionnelles: autresPhotosDeLaFiliere(g.filiere.slug, photo.cle),
+        // Note et nombre d'appréciations sont liés : une production que personne
+        // n'a notée n'a pas de moyenne. Les tirer séparément affichait « 4,2 sur
+        // 0 avis », ce qui se remarque au premier coup d'œil sur une fiche.
+        ...noterProduction(a),
         date_ajout: dansJours(-entier(a, 5, 620)),
         etiquettes: etiquettes(a, enPromotion, stock),
         etat_validation: pondere(
@@ -678,18 +682,53 @@ function construireProductions(
   return productions;
 }
 
+/**
+ * Deux autres photos de la même filière, hors celle déjà retenue. Le choix est
+ * déterministe et non tiré au sort : la galerie d'une fiche doit être la même
+ * d'un rendu à l'autre, sinon deux répétitions de la démonstration ne montrent
+ * pas la même chose.
+ */
+function autresPhotosDeLaFiliere(slugFiliere: string, exclue: string): string[] {
+  return photosParFiliere(slugFiliere)
+    .filter((p) => p.cle !== exclue)
+    .slice(0, 2)
+    .map((p) => p.cle);
+}
+
+/** Appréciations d'une production : la moyenne n'existe que s'il y a des avis. */
+function noterProduction(a: Alea): { note_moyenne: number; nombre_appreciations: number } {
+  const nombre = chance(a, 0.12) ? 0 : entier(a, 3, 47);
+  return {
+    nombre_appreciations: nombre,
+    note_moyenne: nombre === 0 ? 0 : Number(entre(a, 3.6, 5).toFixed(1)),
+  };
+}
+
+/**
+ * Description d'une production.
+ *
+ * Aucun participe passé ne s'accorde avec le nom de la production : il faudrait
+ * en connaître le genre et le nombre, que le catalogue ne porte pas. Une phrase
+ * gabarit produisait « Pommes de terre, préparé par… ». La tournure retenue met
+ * le nom entre guillemets et n'accorde plus rien avec lui.
+ *
+ * L'unité suit « en » et non « à l' » pour la même raison : « conditionnée à
+ * l'sac 5 kg » n'est pas rattrapable par une règle d'élision simple.
+ */
 function descriptionProduction(nom: string, groupement: string, quartier: string, unite: string): string {
   return (
-    `${nom}, préparé par ${groupement} à ${quartier}. Fabrication artisanale à partir de ` +
-    `matières premières approvisionnées localement, conditionnée à l'${unite.startsWith('unité') ? 'unité' : unite} ` +
-    `dans l'atelier du groupement. Contrôle qualité assuré dans le cadre de l'accompagnement ` +
-    `de la Commune de Yeumbeul Nord.`
+    `« ${nom} » — production du groupement ${groupement}, à ${quartier}. ` +
+    `Fabrication artisanale à partir de matières premières approvisionnées localement, ` +
+    `conditionnement en ${unite} dans l'atelier du groupement. Contrôle qualité assuré ` +
+    `dans le cadre de l'accompagnement de la Commune de Yeumbeul Nord.`
   );
 }
 
 function etiquettes(a: Alea, enPromotion: boolean, stock: number): string[] {
   const liste: string[] = [];
-  if (enPromotion) liste.push('Promotion');
+  // Le projet ne fait pas de soldes : l'écart au prix du marché n'est pas une
+  // promotion commerciale, c'est un argument de vente pour la boutique témoin.
+  if (enPromotion) liste.push('Sous le prix du marché');
   if (stock === 0) liste.push('Rupture');
   else if (stock < 12) liste.push('Stock faible');
   if (chance(a, 0.22)) liste.push('Nouveauté');

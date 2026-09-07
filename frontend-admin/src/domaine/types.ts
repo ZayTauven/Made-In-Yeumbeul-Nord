@@ -169,6 +169,13 @@ export interface Groupement {
 
   /** Chemin local d'illustration. Jamais d'URL distante (CLAUDE.md §5). */
   photo: string;
+  /**
+   * Clé de la photo au catalogue local, d'où l'écran tire la variante adaptée et
+   * le `blurDataURL`. Le chemin seul ne suffit pas : `next/image` sans placeholder
+   * fait sauter la mise en page au chargement, et la démonstration doit tenir
+   * sans connexion. Côté Django, ce sera l'identifiant du média.
+   */
+  photo_cle: string;
   etat_validation: EtatValidation;
 }
 
@@ -190,7 +197,12 @@ export interface Production {
   description: string;
 
   prix_unitaire_fcfa: number;
-  /** Prix barré, quand la production est en promotion. */
+  /**
+   * Prix de référence relevé au marché, quand il en existe un. Il est
+   * supérieur au prix pratiqué : la commune montre ce que la production se
+   * vend en boutique témoin face à ce qu'elle se vend ailleurs. Ce n'est pas
+   * une promotion commerciale — le projet ne fait pas de soldes.
+   */
   prix_barre_fcfa: number | null;
   unite: string;
 
@@ -199,8 +211,18 @@ export interface Production {
   disponible: boolean;
 
   photo: string;
+  /** Clé de la photo au catalogue local — voir `Groupement.photo_cle`. */
+  photo_cle: string;
+  /**
+   * Vues secondaires, en **clés** de catalogue et non en chemins : la fiche a
+   * besoin de la variante et du flou, que seule la clé permet de retrouver.
+   * Ce sont d'autres photos de la même filière, pas d'autres angles de
+   * l'article — le corpus photographique documente une activité, il ne
+   * catalogue pas des produits.
+   */
   photos_additionnelles: string[];
 
+  /** Moyenne des appréciations, ou 0 lorsqu'il n'y en a aucune. */
   note_moyenne: number;
   nombre_appreciations: number;
   date_ajout: string;
