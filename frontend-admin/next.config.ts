@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 /*
  * Vireo Next.js 15 — front d'administration « Made in Yeumbeul Nord ».
@@ -32,4 +33,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/*
+ * INTERNATIONALISATION (7 septembre 2026)
+ * ---------------------------------------
+ * `next-intl` est branché sans routage par locale : la langue est résolue par cookie,
+ * pas par préfixe d'URL. Le raisonnement complet est dans src/i18n/config.ts.
+ *
+ * La couche est posée dès le premier écran, conformément à CLAUDE.md §5 : rétrofitter
+ * l'i18n après coup sur les ~52 000 lignes de Vireo coûterait dix fois plus cher.
+ */
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
+export default withNextIntl(nextConfig);

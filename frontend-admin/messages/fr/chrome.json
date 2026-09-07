@@ -1,0 +1,102 @@
+{
+  "marque": {
+    "nom": "Made in Yeumbeul Nord",
+    "baseline": "Suivi-évaluation",
+    "version": "v1.0.0",
+    "copyright": "© {annee} Commune de Yeumbeul Nord",
+    "wordmark": "YEUMBEUL NORD"
+  },
+  "barreLaterale": {
+    "filtrerPlaceholder": "Filtrer le menu…",
+    "filtrerAria": "Filtrer le menu",
+    "effacerFiltre": "Effacer le filtre",
+    "sections": {
+      "PILOTAGE": "Pilotage",
+      "GROUPEMENTS": "Groupements",
+      "PRODUCTIONS": "Productions",
+      "ACTIVITÉS": "Activités",
+      "FORMATIONS": "Formations",
+      "FINANCEMENT": "Financement",
+      "VITRINE": "Vitrine",
+      "ADMINISTRATION": "Administration"
+    },
+    "aria": "Navigation principale"
+  },
+  "palette": {
+    "placeholder": "Rechercher un écran, un groupement, un indicateur…",
+    "aria": "Recherche",
+    "fermer": "Fermer la recherche",
+    "aucunResultat": "Aucun résultat.",
+    "indice": "Essayez « groupements », « cadre logique » ou « décaissements »."
+  },
+  "enTete": {
+    "basculerMenu": "Afficher ou masquer le menu",
+    "rechercher": "Rechercher, ou aller à…",
+    "changerLangue": "Changer de langue",
+    "pleinEcran": "Passer en plein écran",
+    "themeSombre": "Basculer en thème sombre",
+    "personnaliser": "Ouvrir le personnalisateur",
+    "applications": "Accès rapides",
+    "voirTousLesModules": "Voir tous les modules",
+    "notifications": "Notifications",
+    "notificationsAria": "Notifications, {nombre} non lues",
+    "marquerToutLu": "Tout marquer comme lu",
+    "voirToutesNotifications": "Voir toutes les notifications",
+    "nonLue": "Non lue",
+    "menuCompte": "Menu du compte",
+    "voirProfil": "Mon profil",
+    "parametres": "Paramètres",
+    "aide": "Aide",
+    "journalAudit": "Journal d'audit",
+    "deconnexion": "Se déconnecter"
+  },
+  "commandes": {
+    "titre": "Commandes récentes",
+    "aria": "Commandes reçues, {nombre} en attente",
+    "compte": "{nombre, plural, =0 {Aucune en attente} one {# en attente} other {# en attente}}",
+    "total": "Total",
+    "retirer": "Retirer la ligne",
+    "voirLesCommandes": "Voir les commandes",
+    "ouvrirLaVitrine": "Ouvrir la vitrine"
+  },
+  "piedDePage": {
+    "aria": "Liens de pied de page",
+    "aPropos": "Le projet",
+    "aide": "Aide",
+    "conditions": "Conditions",
+    "confidentialite": "Confidentialité"
+  },
+  "placeholder": {
+    "sousTitre": "Écran prévu au menu, pas encore construit.",
+    "corps": "La route est câblée et la navigation fonctionne. Le contenu de cet écran reste à réaliser.",
+    "titreParDefaut": "Écran"
+  },
+  "chargement": "Chargement en cours",
+  "accesRapides": {
+    "annuaire": "Annuaire",
+    "cartographie": "Cartographie",
+    "suivi": "Suivi du projet",
+    "formations": "Formations",
+    "decaissements": "Décaissements",
+    "calendrier": "Calendrier",
+    "commandes": "Commandes",
+    "journal": "Journal d'audit"
+  },
+  "notifications": {
+    "mention": {
+      "titre": "Aminata Diop vous a mentionné",
+      "texte": "« Peux-tu valider la fiche du GIE Bokk Jom avant le comité de pilotage ? »",
+      "quand": "il y a 2 min"
+    },
+    "decaissement": {
+      "titre": "Décaissement enregistré",
+      "texte": "Le financement FIN-0042 a été versé — 1 200 000 FCFA.",
+      "quand": "il y a 1 h"
+    },
+    "declaration": {
+      "titre": "Déclarations à valider",
+      "texte": "Coopérative Teranga a soumis 3 productions.",
+      "quand": "il y a 5 h"
+    }
+  }
+}

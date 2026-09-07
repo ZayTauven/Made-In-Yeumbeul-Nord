@@ -6,6 +6,7 @@
  * Renders the reference #ax-command / .ax-command__* DOM contract.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { manifest, hrefForSlug, type NavNode } from '../../lib/manifest';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -29,6 +30,7 @@ function buildRows(): Row[] {
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState('');
+  const t = useTranslations('chrome');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -86,10 +88,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       <button
         type="button"
         className="ax-command__backdrop"
-        aria-label="Close search"
+        aria-label={t('palette.fermer')}
         onClick={onClose}
       />
-      <div className="ax-command__panel" role="dialog" aria-modal="true" aria-label="Search" ref={panelRef}>
+      <div className="ax-command__panel" role="dialog" aria-modal="true" aria-label={t('palette.aria')} ref={panelRef}>
         <div className="ax-command__input">
           <svg
             className="ax-icon"
@@ -109,14 +111,18 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search pages, jump to…"
-            aria-label="Search"
+            placeholder={t('palette.placeholder')}
+            aria-label={t('palette.aria')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
         <div className="ax-command__results" role="listbox">
-          {results.length === 0 && <p className="ax-command__empty">No results found.</p>}
+          {results.length === 0 && (
+            <p className="ax-command__empty">
+              {t('palette.aucunResultat')} {t('palette.indice')}
+            </p>
+          )}
           {results.map((row, i) => (
             <button
               key={row.node.id}

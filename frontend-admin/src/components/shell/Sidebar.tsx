@@ -10,6 +10,7 @@
  * `ax-nav__item--trail` — exactly as core/nav.js does in the HTML edition.
  */
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -152,16 +153,17 @@ function Group({ node, level, activeSlug, filter }: GroupProps) {
 export function Sidebar() {
   const activeSlug = slugFromPath(usePathname() || '/');
   const [filter, setFilter] = useState('');
+  const t = useTranslations('chrome');
 
   return (
-    <aside className="ax-sidebar" role="navigation" aria-label="Primary">
+    <aside className="ax-sidebar" role="navigation" aria-label={t('barreLaterale.aria')}>
       {/* ===== BRAND ===== */}
       <div className="ax-sidebar__brand">
-        <Link className="ax-sidebar__logo" href="/" aria-label="Vireo home">
+        <Link className="ax-sidebar__logo" href="/" aria-label={t('marque.nom')}>
           <span className="ax-sidebar__mark" aria-hidden="true">
             <svg className="ax-icon" viewBox="0 0 32 32" width={24} height={24} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="axmk0" x1={4} y1={4} x2={28} y2={28} gradientUnits="userSpaceOnUse"><stop stopColor="#2BC4B0" /><stop offset="0.55" stopColor="#1E9E96" /><stop offset="1" stopColor="#6D5CF0" /></linearGradient></defs><path d="M4 4 H16 A12 12 0 0 1 28 16 V28 A0 0 0 0 1 28 28 H16 A12 12 0 0 1 4 16 V4 Z" fill="url(#axmk0)" stroke="none" /><circle cx="20.5" cy="11.5" r="2.6" fill="#0A0C11" fillOpacity="0.92" stroke="none" /></svg>
           </span>
-          <span className="ax-sidebar__wordmark">VIREO</span>
+          <span className="ax-sidebar__wordmark">{t('marque.wordmark')}</span>
         </Link>
       </div>
 
@@ -185,8 +187,8 @@ export function Sidebar() {
         <input
           type="search"
           className="ax-sidebar__filter"
-          placeholder="Filter menu…"
-          aria-label="Filter menu"
+          placeholder={t('barreLaterale.filtrerPlaceholder')}
+          aria-label={t('barreLaterale.filtrerAria')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           onKeyDown={(e) => e.key === 'Escape' && setFilter('')}
@@ -196,7 +198,7 @@ export function Sidebar() {
             type="button"
             className="ax-sidebar__filter-clear"
             onClick={() => setFilter('')}
-            aria-label="Clear filter"
+            aria-label={t('barreLaterale.effacerFiltre')}
           >
             <svg
               className="ax-icon"
@@ -222,7 +224,7 @@ export function Sidebar() {
         {sections().map((section) => (
           <div key={section}>
             <p className="ax-sidebar__section" role="presentation">
-              {sectionLabel(section)}
+              {sectionLabel(section, t)}
             </p>
             {groupsInSection(section)
               .filter((g) => g.inMenu)
@@ -243,18 +245,22 @@ export function Sidebar() {
 }
 
 /* ── helpers ── */
-function sectionLabel(s: string): string {
-  // Manifest sections are upper-case; reference renders them title-ish.
-  const map: Record<string, string> = {
-    MAIN: 'Main',
-    APPLICATIONS: 'Applications',
-    MODULES: 'Modules',
-    PAGES: 'Pages',
-    'UI & FORMS': 'UI & Forms',
-    DOCS: 'Docs',
-  };
-  return map[s] || s;
+/**
+ * Libellé d'un en-tête de section.
+ *
+ * Le nom de section du manifeste sert de clé. S'il n'est pas traduit, on le rend
+ * tel quel : une section nouvellement ajoutée au manifeste s'affiche donc
+ * correctement avant même d'être traduite, plutôt que de laisser un trou.
+ *
+ * La feuille de style met déjà l'en-tête en capitales (`text-transform`), le
+ * catalogue porte donc la casse normale.
+ */
+function sectionLabel(s: string, t: TraducteurChrome): string {
+  const cle = `barreLaterale.sections.${s}`;
+  return t.has(cle) ? t(cle) : s;
 }
+
+type TraducteurChrome = ReturnType<typeof useTranslations<'chrome'>>;
 
 function matches(node: NavNode, q: string): boolean {
   if (!q) return true;

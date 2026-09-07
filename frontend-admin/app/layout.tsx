@@ -5,10 +5,14 @@
  *   1. The anti-flash theme-restore IIFE is the FIRST executable thing in
  *      <head>, before any stylesheet — inlined as a raw <script> with
  *      dangerouslySetInnerHTML so the bundler NEVER defers it. It reads ax:*
- *      localStorage and sets all data-ax-* + dir + lang on <html> before paint.
- *      (Verbatim copy of src/html/partials/head.html lines 12–83.)
+ *      localStorage and sets all data-ax-* + dir on <html> before paint.
+ *      (Adapté de src/html/partials/head.html lignes 12–83.)
  *   2. Google Fonts — Inter / Space Grotesk / JetBrains Mono + preconnects.
  *   3. The shared --ax-* token core (app.css) imported once below.
+ *
+ * INTERNATIONALISATION (7 septembre 2026) — l'attribut `lang` est rendu par le
+ * serveur à partir de la locale next-intl, et non plus posé par le script
+ * anti-flash. Voir src/i18n/config.ts pour le choix d'architecture.
  *
  * `suppressHydrationWarning` on <html> is required: the IIFE mutates <html>
  * attributes before React hydrates, so the server markup and the post-IIFE DOM
@@ -19,6 +23,8 @@
  */
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { CustomizerProvider } from '../src/context/CustomizerContext';
 import '../src/styles/app.css';
 
@@ -47,12 +53,15 @@ const ANTI_FLASH = `
   if (accent === 'verdigris') D.removeAttribute('data-ax-accent');
   else D.setAttribute('data-ax-accent', accent);
 
-  /* ---- LANG + DIR ---- */
-  var lang = (get('ax:lang') || 'EN').toUpperCase();
-  D.setAttribute('lang', lang.toLowerCase());
+  /* ---- DIR ---- */
+  /* L'attribut lang n'est plus gere ici : depuis la mise en place de next-intl
+     (7 sept 2026), la locale est resolue par cookie cote serveur et rendue
+     directement sur <html>. Deux sources de verite pour la meme information
+     finissent toujours par diverger. La direction, elle, reste ici : elle a un
+     effet visuel immediat, donc un risque de scintillement.
+     Ce bloc vit dans un litteral de gabarit : pas d'accent grave dans ce commentaire. */
   var dirStored = get('ax:dir');
-  var dir = dirStored ? dirStored : (lang === 'AR' ? 'rtl' : 'ltr');
-  D.setAttribute('dir', dir);
+  D.setAttribute('dir', dirStored ? dirStored : 'ltr');
 
   /* ---- LAYOUT / SCHEME attributes (write only non-defaults) ---- */
   function setAttr(attr, key, def){
@@ -93,9 +102,13 @@ const ANTI_FLASH = `
 `;
 
 export const metadata: Metadata = {
-  title: 'Vireo · Next.js',
+  title: {
+    default: 'Made in Yeumbeul Nord — Suivi-évaluation',
+    template: '%s · Made in Yeumbeul Nord',
+  },
   description:
-    'Vireo — premium multipurpose admin & dashboard template with an Aurora glass interface, 17 dashboards, 8 web apps and a full eCommerce suite.',
+    "Plateforme de suivi-évaluation et de valorisation des 100 groupements de Yeumbeul Nord. " +
+    "Projet And Jappo Meunal Souniou Bopp, porté par la Commune de Yeumbeul Nord.",
   icons: { icon: '/favicon.svg' },
 };
 
@@ -109,9 +122,31 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Locale résolue côté serveur depuis le cookie (src/i18n/request.ts).
+  // C'est la seule source de vérité de la langue : le script anti-flash ne touche
+  // plus à l'attribut `lang`.
+  const locale = await getLocale();
+
+  /*
+   * Seuls les espaces de noms réellement consommés par des composants clients
+   * traversent la frontière serveur/client.
+   *
+   * Sans cette sélection, `NextIntlClientProvider` hérite de tout le catalogue et
+   * l'embarque dans la charge utile de chaque page — dont `navigation`, ses
+   * 204 entrées, qu'aucun composant client ne lit : le manifeste porte déjà ses
+   * titres, ce catalogue n'existe que pour l'arrivée du wolof.
+   *
+   * Ajouter un espace ici le jour où un composant client en a besoin.
+   */
+  const messages = await getMessages();
+  const messagesClient = {
+    commun: messages.commun,
+    chrome: messages.chrome,
+  };
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir="ltr" suppressHydrationWarning>
       <head>
         {/* Anti-flash theme-restore — FIRST in <head>, before app.css. */}
         <script dangerouslySetInnerHTML={{ __html: ANTI_FLASH }} />
@@ -124,7 +159,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <CustomizerProvider>{children}</CustomizerProvider>
+        <NextIntlClientProvider messages={messagesClient}>
+          <CustomizerProvider>{children}</CustomizerProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

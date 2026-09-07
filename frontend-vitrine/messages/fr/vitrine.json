@@ -1,0 +1,117 @@
+{
+  "navigation": {
+    "accueil": "Accueil",
+    "groupements": "Les groupements",
+    "productions": "Les productions",
+    "filieres": "Les filières",
+    "boutiques": "Boutiques témoins",
+    "actualites": "Actualités",
+    "aPropos": "Le projet",
+    "contact": "Contact"
+  },
+
+  "accueil": {
+    "heroTitre": "Le savoir-faire de Yeumbeul Nord, à portée de main",
+    "heroChapeau": "Cent groupements de la commune produisent, transforment et vendent. Retrouvez-les ici, quartier par quartier, filière par filière.",
+    "heroAction": "Parcourir les groupements",
+    "heroActionSecondaire": "Voir le catalogue",
+    "chiffresTitre": "Le projet en chiffres",
+    "filieresTitre": "Onze filières",
+    "filieresChapeau": "De la saponification à la vannerie, les métiers portés par les groupements de la commune.",
+    "productionsTitre": "Productions du moment",
+    "groupementsTitre": "Ils produisent près de chez vous",
+    "actualitesTitre": "Actualités du projet",
+    "boutiquesTitre": "Où acheter",
+    "boutiquesChapeau": "Trois boutiques témoins accueillent les productions des groupements accompagnés."
+  },
+
+  "annuaire": {
+    "titre": "Les groupements de Yeumbeul Nord",
+    "chapeau": "Cent groupements recensés, accompagnés et suivis par la Commune.",
+    "resultats": "{nombre, plural, =0 {Aucun groupement} one {# groupement} other {# groupements}} correspondent à votre recherche",
+    "filtreFiliere": "Filière",
+    "filtreQuartier": "Quartier",
+    "filtreEtape": "Étape d'accompagnement",
+    "vueGrille": "Grille",
+    "vueListe": "Liste"
+  },
+
+  "groupement": {
+    "membres": "Membres",
+    "productions": "Ses productions",
+    "filiere": "Filière",
+    "quartier": "Quartier",
+    "creeEn": "Créé en {annee}",
+    "statutJuridique": "Statut juridique",
+    "responsable": "Responsable",
+    "contacter": "Contacter le groupement",
+    "aucuneProduction": "Ce groupement n'a pas encore publié de production.",
+    "partFemmes": "{valeur} % de femmes"
+  },
+
+  "catalogue": {
+    "titre": "Les productions",
+    "chapeau": "Tout ce que produisent les groupements de la commune, du savon au couscous de mil.",
+    "trierPar": "Trier par",
+    "triNom": "Nom",
+    "triPrixCroissant": "Prix croissant",
+    "triPrixDecroissant": "Prix décroissant",
+    "triNote": "Mieux appréciées",
+    "triNouveaute": "Nouveautés",
+    "prixMin": "Prix minimum",
+    "prixMax": "Prix maximum",
+    "disponiblesSeulement": "Disponibles uniquement"
+  },
+
+  "production": {
+    "producteur": "Produit par",
+    "unite": "Conditionnement",
+    "quantite": "Quantité",
+    "descriptif": "Descriptif",
+    "appreciations": "Appréciations",
+    "similaires": "Productions similaires",
+    "duMemeGroupement": "Du même groupement"
+  },
+
+  "panier": {
+    "titre": "Mon panier",
+    "vide": "Votre panier est vide",
+    "videIndice": "Parcourez le catalogue pour découvrir les productions des groupements.",
+    "total": "Total",
+    "livraison": "Livraison",
+    "livraisonQuartier": "Livraison dans la commune",
+    "recapitulatif": "Récapitulatif",
+    "vendeurs": "{nombre, plural, one {# groupement vendeur} other {# groupements vendeurs}}",
+    "vendeursIndice": "Votre commande sera transmise à chaque groupement concerné."
+  },
+
+  "commande": {
+    "titre": "Finaliser la commande",
+    "coordonnees": "Vos coordonnées",
+    "confirmee": "Commande confirmée",
+    "confirmeeIndice": "Le groupement vous contactera au numéro indiqué pour convenir de la livraison.",
+    "numero": "Numéro de commande",
+    "statuts": {
+      "panier": "Panier",
+      "confirmee": "Confirmée",
+      "preparee": "Préparée",
+      "livree": "Livrée",
+      "annulee": "Annulée"
+    }
+  },
+
+  "aPropos": {
+    "titre": "And Jappo Meunal Souniou Bopp",
+    "sousTitre": "Se rassembler pour compter sur soi-même",
+    "chapeau": "Un projet de la Commune de Yeumbeul Nord pour structurer, former et faire connaître les groupements de son territoire."
+  },
+
+  "piedDePage": {
+    "mentionInstitutionnelle": "Une initiative de la Commune de Yeumbeul Nord",
+    "mentionsLegales": "Mentions légales",
+    "conditions": "Conditions générales",
+    "confidentialite": "Confidentialité",
+    "cookies": "Cookies",
+    "droits": "© {annee} Commune de Yeumbeul Nord. Tous droits réservés."
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "produit": {
+    "nom": "Made in Yeumbeul Nord",
+    "projet": "And Jappo Meunal Souniou Bopp",
+    "devise": "Se rassembler pour compter sur soi-même",
+    "tutelle": "Commune de Yeumbeul Nord"
+  },
+
+  "actions": {
+    "ajouter": "Ajouter",
+    "annuler": "Annuler",
+    "appliquer": "Appliquer",
+    "confirmer": "Confirmer",
+    "enregistrer": "Enregistrer",
+    "exporter": "Exporter",
+    "fermer": "Fermer",
+    "filtrer": "Filtrer",
+    "imprimer": "Imprimer",
+    "modifier": "Modifier",
+    "rechercher": "Rechercher",
+    "reinitialiser": "Réinitialiser",
+    "retour": "Retour",
+    "supprimer": "Supprimer",
+    "telecharger": "Télécharger",
+    "voirTout": "Voir tout",
+    "voirLaFiche": "Voir la fiche"
+  },
+
+  "validation": {
+    "soumettre": "Soumettre à validation",
+    "valider": "Valider",
+    "rejeter": "Rejeter",
+    "motifDuRejet": "Motif du rejet",
+    "motifObligatoire": "Un rejet doit être motivé : sans explication, le groupement ne peut pas corriger sa déclaration.",
+    "etats": {
+      "brouillon": "Brouillon",
+      "soumis": "En attente de validation",
+      "valide": "Validé",
+      "rejete": "Rejeté"
+    }
+  },
+
+  "table": {
+    "aucunResultat": "Aucun résultat",
+    "aucunResultatIndice": "Aucune donnée ne correspond à ces filtres. Élargissez la recherche ou réinitialisez.",
+    "chargement": "Chargement…",
+    "colonnes": "Colonnes",
+    "elementsParPage": "Éléments par page",
+    "lignesSelectionnees": "{nombre, plural, =0 {Aucune ligne sélectionnée} one {# ligne sélectionnée} other {# lignes sélectionnées}}",
+    "pagination": "{debut}–{fin} sur {total}",
+    "trier": "Trier"
+  },
+
+  "filtres": {
+    "titre": "Filtres",
+    "toutesLesFilieres": "Toutes les filières",
+    "tousLesQuartiers": "Tous les quartiers",
+    "toutesLesEtapes": "Toutes les étapes",
+    "tousLesStatuts": "Tous les statuts",
+    "actifs": "{nombre, plural, =0 {Aucun filtre} one {# filtre actif} other {# filtres actifs}}"
+  },
+
+  "etapes": {
+    "identifie": "Identifié",
+    "forme": "Formé",
+    "certifie": "Certifié",
+    "formalise": "Formalisé",
+    "equipe": "Équipé",
+    "en_production": "En production",
+    "autonome": "Autonome"
+  },
+
+  "unites": {
+    "groupements": "{nombre, plural, =0 {Aucun groupement} one {# groupement} other {# groupements}}",
+    "membres": "{nombre, plural, =0 {Aucun membre} one {# membre} other {# membres}}",
+    "productions": "{nombre, plural, =0 {Aucune production} one {# production} other {# productions}}",
+    "sessions": "{nombre, plural, =0 {Aucune session} one {# session} other {# sessions}}",
+    "fcfa": "{montant} FCFA",
+    "pourcentage": "{valeur} %"
+  },
+
+  "indicateur": {
+    "cible": "Cible",
+    "reference": "Valeur de référence",
+    "actuelle": "Valeur actuelle",
+    "atteinte": "Taux d'atteinte",
+    "derniereCollecte": "Dernière collecte",
+    "source": "Source de la donnée",
+    "periodicite": "Périodicité",
+    "tendanceHausse": "En hausse",
+    "tendanceBaisse": "En baisse",
+    "tendanceStable": "Stable",
+    "sensDecroissant": "Indicateur à faire baisser"
+  },
+
+  "temps": {
+    "aujourdhui": "Aujourd'hui",
+    "cetteSemaine": "Cette semaine",
+    "ceMois": "Ce mois-ci",
+    "ceTrimestre": "Ce trimestre",
+    "cetteAnnee": "Cette année",
+    "periodePrecedente": "Période précédente",
+    "aLInstant": "À l'instant"
+  },
+
+  "paiement": {
+    "wave": "Wave",
+    "orange_money": "Orange Money",
+    "free_money": "Free Money",
+    "especes": "Espèces",
+    "virement": "Virement bancaire"
+  },
+
+  "etat": {
+    "aucuneDonnee": "Aucune donnée",
+    "aucuneDonneeIndice": "Rien à afficher pour le moment.",
+    "erreur": "Une erreur est survenue",
+    "erreurIndice": "La donnée n'a pas pu être chargée. Réessayez, ou signalez-le à la coordination.",
+    "horsLigne": "Hors ligne",
+    "horsLigneIndice": "La plateforme fonctionne sur les données déjà chargées."
+  },
+
+  "accessibilite": {
+    "ouvrirLeMenu": "Ouvrir le menu",
+    "fermerLeMenu": "Fermer le menu",
+    "ouvrirLaRecherche": "Ouvrir la recherche",
+    "changerDeTheme": "Changer de thème",
+    "notifications": "Notifications",
+    "filDAriane": "Fil d'Ariane"
+  }
+}
