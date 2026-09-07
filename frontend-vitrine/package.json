@@ -15,6 +15,7 @@
     "apexcharts": "^4.7.0",
     "bootstrap": "^5.3.5",
     "next": "^16.0.8",
+    "next-intl": "^4.14.2",
     "react": "^19.0.0",
     "react-apexcharts": "^1.7.0",
     "react-bootstrap": "^2.10.9",

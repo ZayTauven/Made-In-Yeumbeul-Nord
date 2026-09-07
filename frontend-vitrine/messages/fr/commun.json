@@ -1,0 +1,89 @@
+{
+  "produit": {
+    "nom": "Made in Yeumbeul Nord",
+    "projet": "And Jappo Meunal Souniou Bopp",
+    "devise": "Se rassembler pour compter sur soi-même",
+    "tutelle": "Commune de Yeumbeul Nord"
+  },
+
+  "actions": {
+    "ajouter": "Ajouter",
+    "ajouterAuPanier": "Ajouter au panier",
+    "annuler": "Annuler",
+    "commander": "Commander",
+    "continuerMesAchats": "Continuer mes achats",
+    "decouvrir": "Découvrir",
+    "envoyer": "Envoyer",
+    "filtrer": "Filtrer",
+    "rechercher": "Rechercher",
+    "reinitialiser": "Réinitialiser",
+    "voirLaFiche": "Voir la fiche",
+    "voirTout": "Voir tout",
+    "apercuRapide": "Aperçu rapide",
+    "comparer": "Comparer",
+    "mettreEnFavori": "Mettre en favori"
+  },
+
+  "unites": {
+    "groupements": "{nombre, plural, =0 {Aucun groupement} one {# groupement} other {# groupements}}",
+    "membres": "{nombre, plural, =0 {Aucun membre} one {# membre} other {# membres}}",
+    "productions": "{nombre, plural, =0 {Aucune production} one {# production} other {# productions}}",
+    "avis": "{nombre, plural, =0 {Aucune appréciation} one {# appréciation} other {# appréciations}}",
+    "fcfa": "{montant} FCFA",
+    "prixParUnite": "{montant} FCFA / {unite}"
+  },
+
+  "stock": {
+    "disponible": "En stock",
+    "faible": "Plus que {nombre} en stock",
+    "rupture": "Momentanément indisponible",
+    "ruptureIndice": "Ce groupement produit à la commande. Contactez-le pour connaître le prochain lot."
+  },
+
+  "etiquettes": {
+    "promotion": "Promotion",
+    "nouveaute": "Nouveauté",
+    "certifie": "Certifié",
+    "rupture": "Rupture",
+    "stockFaible": "Stock faible"
+  },
+
+  "paiement": {
+    "titre": "Moyen de paiement",
+    "wave": "Wave",
+    "orange_money": "Orange Money",
+    "free_money": "Free Money",
+    "especes": "Espèces à la livraison",
+    "virement": "Virement bancaire",
+    "mention": "Le paiement se fait directement auprès du groupement producteur."
+  },
+
+  "formulaire": {
+    "nom": "Nom complet",
+    "telephone": "Téléphone",
+    "email": "Adresse électronique",
+    "quartier": "Quartier",
+    "adresse": "Adresse de livraison",
+    "message": "Message",
+    "champRequis": "Ce champ est obligatoire",
+    "telephoneInvalide": "Numéro invalide. Format attendu : +221 77 000 00 00",
+    "envoyeTitre": "Message envoyé",
+    "envoyeIndice": "La coordination vous répondra sous 48 heures ouvrées."
+  },
+
+  "etat": {
+    "aucunResultat": "Aucun résultat",
+    "aucunResultatIndice": "Aucune production ne correspond à cette recherche. Essayez une autre filière ou un autre quartier.",
+    "chargement": "Chargement…",
+    "erreur": "Une erreur est survenue",
+    "erreurIndice": "La page n'a pas pu être chargée. Réessayez dans un instant."
+  },
+
+  "accessibilite": {
+    "ouvrirLeMenu": "Ouvrir le menu",
+    "fermerLeMenu": "Fermer le menu",
+    "ouvrirLePanier": "Ouvrir le panier",
+    "ouvrirLaRecherche": "Ouvrir la recherche",
+    "allerAuContenu": "Aller au contenu principal"
+  }
+}

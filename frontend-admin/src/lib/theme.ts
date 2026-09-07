@@ -159,7 +159,7 @@ export function setDir(d: string): string {
 }
 
 export function setLang(code: string): string {
-  const lang = (code || 'EN').toUpperCase();
+  const lang = (code || 'FR').toUpperCase();
   store.set('ax:lang', lang);
   D.setAttribute('lang', lang.toLowerCase());
   // AR implies rtl unless the user explicitly set a direction.
@@ -276,7 +276,7 @@ export function reset(): void {
   D.setAttribute('dir', 'ltr');
   D.removeAttribute('style');
   D.setAttribute('data-ax-theme', resolveTheme('system'));
-  D.setAttribute('lang', 'en');
+  D.setAttribute('lang', 'fr');
   store.ensureSchema();
   emitChange('reset');
 }
@@ -294,7 +294,7 @@ export function copyConfig(): string {
 export function currentValueOf(name: string): string {
   if (name === 'theme' || name === 'mode') return store.get('ax:theme') || 'system';
   if (name === 'dir') return D.getAttribute('dir') === 'rtl' ? 'rtl' : 'ltr';
-  if (name === 'lang') return store.get('ax:lang') || 'EN';
+  if (name === 'lang') return store.get('ax:lang') || 'FR';
   if (name === 'accent') return D.getAttribute('data-ax-accent') || 'verdigris';
   const r = REGISTRY[name];
   return r ? D.getAttribute(r.attr) || r.def : '';
