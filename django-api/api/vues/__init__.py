@@ -10,8 +10,10 @@ from .authentification import (
     ChangementMotDePasseView,
     ConnexionView,
     DeconnexionView,
+    DemandeReinitialisationView,
     JetonCsrfView,
     ProfilView,
+    ReinitialisationView,
 )
 from .catalogue import (
     FiliereViewSet,
@@ -48,6 +50,8 @@ __all__ = [
     "DeconnexionView",
     "ProfilView",
     "ChangementMotDePasseView",
+    "DemandeReinitialisationView",
+    "ReinitialisationView",
     # Catalogue
     "QuartierViewSet",
     "FiliereViewSet",

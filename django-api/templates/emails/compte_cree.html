@@ -1,0 +1,36 @@
+{% extends "emails/base.html" %}
+{# Objet défini dans comptes/courriels.py : SUJETS["compte_cree"] #}
+
+{% block titre %}Votre compte est actif{% endblock %}
+{% block preheader %}Votre accès à la plateforme de suivi des groupements est ouvert.{% endblock %}
+{% block rubrique %}Compte et accès{% endblock %}
+{% block illustration %}enveloppe-validee.png{% endblock %}
+{% block alt %}Une enveloppe ouverte marquée d'une coche{% endblock %}
+{% block entete %}Votre compte est actif{% endblock %}
+
+{% block contenu %}
+    <tr><td class="sc-pad" style="padding:14px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:27px;color:#47544f;mso-line-height-rule:exactly;">
+      Un compte vous a été ouvert sur la plateforme de suivi des groupements de Yeumbeul Nord. Vous pouvez dès maintenant vous connecter.
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:28px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center" bgcolor="#1e856c" style="border-radius:6px;">
+        <a href="{{ lien_connexion }}" style="display:block;padding:15px 34px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px;">
+          Accéder à mon tableau de bord
+        </a>
+      </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:34px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background-color:#f1f7f5;border-radius:6px;">
+      <tr><td style="padding:22px 24px 22px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;mso-line-height-rule:exactly;">
+        <span style="display:block;font-size:12px;line-height:18px;letter-spacing:.08em;text-transform:uppercase;color:#7d8a85;padding-bottom:6px;">Votre identifiant</span>
+        <span style="font-weight:bold;color:#16211e;">{{ identifiant }}</span><br>
+        <span style="display:block;font-size:12px;line-height:18px;letter-spacing:.08em;text-transform:uppercase;color:#7d8a85;padding-top:14px;padding-bottom:6px;">Votre rôle</span>
+        {{ role }}
+      </td></tr>
+      </table>
+    </td></tr>
+{% endblock %}

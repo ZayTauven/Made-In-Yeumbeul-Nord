@@ -33,7 +33,7 @@ Puis :
 
 ```bash
 python manage.py migrate
-python manage.py peupler_technique --vider   # jeu technique, voir §6
+python manage.py peupler_technique --vider   # jeu technique, voir §7
 python manage.py createsuperuser             # pour /admin/ et les écritures
 python manage.py runserver 8000
 ```
@@ -107,6 +107,13 @@ const profil = await fetch(`${API}/auth/connexion/`, {
 | `/api/auth/moi/` | GET | Profil du compte connecté |
 | `/api/auth/deconnexion/` | POST | Ferme la session |
 | `/api/auth/mot-de-passe/` | POST | Change le mot de passe |
+| `/api/auth/mot-de-passe/oubli/` | POST | Envoie un lien de réinitialisation |
+| `/api/auth/mot-de-passe/reinitialiser/` | POST | Consomme le lien et pose le nouveau mot de passe |
+
+La demande d'oubli répond **204 dans tous les cas**, compte connu ou non : distinguer les deux
+transformerait la route en annuaire d'adresses. Le lien renvoie vers
+`FRONT_ADMIN_URL/auth/reinitialiser?uid=…&jeton=…`, valable deux heures et utilisable une seule
+fois.
 
 **Le jeton CSRF tourne à la connexion** : le relire après s'être connecté, sinon la première
 écriture repartira avec l'ancien.
@@ -188,10 +195,46 @@ contredit son propre tableau.
 
 ---
 
-## 5. Tests
+## 5. Courriels
+
+Cinq courriels, dans `templates/emails/` : compte créé, accès suspendu, mot de passe oublié,
+mot de passe provisoire, mot de passe modifié. Ils héritent tous de `base.html`, qui porte la
+structure et **toutes les couleurs**.
+
+Le montage passe par `comptes/courriels.py` : une fonction par message, version texte rédigée à
+la main, illustration **jointe** au message (`src="cid:…"`) et non chargée depuis un serveur —
+la plupart des clients bloquent les images distantes, et la plateforme doit tenir sans connexion.
+Un échec d'envoi est journalisé et n'interrompt jamais la requête.
+
+```ini
+# .env — laisser EMAIL_HOST_USER vide écrit dans la console au lieu d'envoyer
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=…
+EMAIL_HOST_PASSWORD=…        # mot de passe d'application, jamais le mot de passe du compte
+DEFAULT_FROM_EMAIL=Made in Yeumbeul Nord <…>
+FRONT_ADMIN_URL=http://localhost:3000
+```
+
+> Les couleurs des courriels sont **en dur**, et c'est inévitable : aucun client de messagerie ne
+> lit les variables CSS. Elles sont réunies dans `base.html`, avec l'accent natif de Vireo
+> (verdigris `#1E856C`) conformément au gel de charte — rien n'est inventé. La bascule reste un
+> geste unique le jour où la charte sera arrêtée.
+
+`templates/emails/_a-adapter/` conserve les vingt-six gabarits d'origine du projet Yessal Gui,
+dont cinq ont été adaptés. Son `LISEZ-MOI.md` dit lesquels restent transposables et à quoi — le
+lot « documents » correspond directement au workflow de validation.
+
+Depuis `/admin/`, l'action **« Envoyer un lien de réinitialisation »** couvre le cas courant :
+un agent a perdu son mot de passe.
+
+---
+
+## 6. Tests
 
 ```bash
-python manage.py test comptes core api  # 145 tests
+python manage.py test comptes core api  # 167 tests
 python manage.py test api.tests.test_suivi -v 2
 ```
 
@@ -211,7 +254,7 @@ Points spécifiquement couverts, parce qu'ils sont faciles à casser sans s'en a
 
 ---
 
-## 6. Données
+## 7. Données
 
 `python manage.py peupler_technique --vider` installe un jeu **technique** : 24 groupements,
 ~440 membres, 62 productions, 12 activités, 8 indicateurs. Les noms sont des gabarits et les
@@ -224,13 +267,10 @@ sénégalaise, filières plausibles, montants cohérents, chronologie tenable. I
 
 ---
 
-## 7. Ce qui n'est pas encore fait
+## 8. Ce qui n'est pas encore fait
 
 - **Comptes de groupement** : seuls les agents de la commune se connectent. L'auto-inscription
   des groupements et l'OTP par SMS sont en roadmap post-MVP1 (`07-PLAN-MVP1.md`).
-- **Réinitialisation de mot de passe** : les écrans existent côté Vireo, la route non — elle
-  suppose un serveur SMTP que le projet n'a pas encore. Un administrateur réinitialise depuis
-  `/admin/` en attendant.
 - **Écrans de connexion** : `app/(bare)/auth/sign-in-*` de Vireo sont encore les maquettes du
   template, à brancher sur `/api/auth/`.
 - **Bascule des fronts** : ils lisent encore leur générateur local. La bascule se fait fonction

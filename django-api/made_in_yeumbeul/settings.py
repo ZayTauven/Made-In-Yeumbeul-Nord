@@ -91,7 +91,8 @@ ROOT_URLCONF = "made_in_yeumbeul.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # `templates/emails/` porte les gabarits de courriel.
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -203,10 +204,52 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# `static/emails/illustrations/` porte les vignettes des courriels. Elles ne sont
+# pas servies par HTTP mais jointes au message (voir `comptes.courriels`) : un
+# client de messagerie qui bloque les images distantes n'afficherait rien, et la
+# plateforme doit tenir sans connexion (CLAUDE.md §5).
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Aucun média n'est hébergé par Django : les visuels sont servis par le `public/`
 # de chaque front, depuis le catalogue `Assets/_optimized/`. Les modèles ne
 # portent donc que la clé du média, pas un `ImageField` (CLAUDE.md §5).
+
+
+# --------------------------------------------------------------------------- #
+# Courriel
+# --------------------------------------------------------------------------- #
+
+EMAIL_HOST = variable("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(variable("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = booleen("EMAIL_USE_TLS", True)
+EMAIL_HOST_USER = variable("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = variable("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = variable(
+    "DEFAULT_FROM_EMAIL", "Made in Yeumbeul Nord <ne-pas-repondre@yeumbeulnord.sn>"
+)
+
+# Sans compte configuré, les messages s'écrivent dans la console plutôt que de
+# partir : un développeur qui clone le dépôt voit le contenu du courriel sans
+# avoir à obtenir un accès SMTP, et rien ne s'envoie par accident.
+EMAIL_BACKEND = variable(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST_USER
+    else "django.core.mail.backends.console.EmailBackend",
+)
+
+# Un envoi bloque la requête le temps de la remise. Vingt secondes laissent
+# passer une première connexion lente — résolution DNS à froid, liaison de
+# qualité inégale — tout en bornant l'attente quand le serveur ne répond pas.
+EMAIL_TIMEOUT = int(variable("EMAIL_TIMEOUT", "20"))
+
+#: Les liens des courriels renvoient vers le front de gestion, pas vers l'API :
+#: c'est là que l'agent choisit son nouveau mot de passe.
+FRONT_ADMIN_URL = variable("FRONT_ADMIN_URL", "http://localhost:3000").rstrip("/")
+
+#: Durée de validité d'un lien de réinitialisation. Django la lit pour valider
+#: le jeton ; le courriel l'annonce à l'agent.
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 2  # deux heures
 
 
 # --------------------------------------------------------------------------- #

@@ -59,6 +59,16 @@ urlpatterns = [
         vues.ChangementMotDePasseView.as_view(),
         name="auth-mot-de-passe",
     ),
+    path(
+        "auth/mot-de-passe/oubli/",
+        vues.DemandeReinitialisationView.as_view(),
+        name="auth-mot-de-passe-oubli",
+    ),
+    path(
+        "auth/mot-de-passe/reinitialiser/",
+        vues.ReinitialisationView.as_view(),
+        name="auth-mot-de-passe-reinitialiser",
+    ),
     # --- Agrégations, avant le routeur (voir l'entête) --------------------- #
     path("suivi/kpis/", vues.KpisView.as_view(), name="suivi-kpis"),
     path(

@@ -92,3 +92,38 @@ class JetonCsrfSerializer(serializers.Serializer):
     """Réponse de `GET /api/auth/csrf/`."""
 
     jeton_csrf = serializers.CharField(read_only=True)
+
+
+class DemandeReinitialisationSerializer(serializers.Serializer):
+    """Corps de `POST /api/auth/mot-de-passe/oubli/`.
+
+    `identifiant` accepte l'identifiant, le courriel ou le téléphone, comme à la
+    connexion : un agent qui a oublié son mot de passe a rarement en tête la
+    forme exacte sous laquelle son compte a été enregistré.
+    """
+
+    identifiant = serializers.CharField()
+
+
+class ReinitialisationSerializer(serializers.Serializer):
+    """Corps de `POST /api/auth/mot-de-passe/reinitialiser/`.
+
+    `uid` et `jeton` proviennent du lien reçu par courriel. La validité du jeton
+    se vérifie dans la vue, qui seule sait à quel compte `uid` renvoie.
+    """
+
+    uid = serializers.CharField()
+    jeton = serializers.CharField()
+    nouveau_mot_de_passe = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
+
+    def validate_nouveau_mot_de_passe(self, valeur):
+        # La validation dépendante du compte — similarité avec le nom ou le
+        # courriel — a lieu dans la vue, une fois `uid` résolu. Ici on ne peut
+        # contrôler que ce qui ne dépend d'aucun utilisateur.
+        try:
+            validate_password(valeur)
+        except ValidationDjango as erreur:
+            raise serializers.ValidationError(list(erreur.messages))
+        return valeur

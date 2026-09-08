@@ -16,8 +16,10 @@ from .commerce import (
 from .comptes import (
     ChangementMotDePasseSerializer,
     ConnexionSerializer,
+    DemandeReinitialisationSerializer,
     JetonCsrfSerializer,
     ProfilSerializer,
+    ReinitialisationSerializer,
 )
 from .contenus import ActualiteSerializer, EvenementJournalSerializer
 from .finances import (
@@ -67,6 +69,8 @@ __all__ = [
     "ConnexionSerializer",
     "ChangementMotDePasseSerializer",
     "JetonCsrfSerializer",
+    "DemandeReinitialisationSerializer",
+    "ReinitialisationSerializer",
     # Territoire
     "QuartierSerializer",
     "FiliereSerializer",

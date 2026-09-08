@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{# Objet défini dans comptes/courriels.py : SUJETS["acces_suspendu"] #}
+
+{% block titre %}Votre accès a été suspendu{% endblock %}
+{% block preheader %}Les données que vous avez saisies sont conservées.{% endblock %}
+{% block rubrique %}Compte et accès{% endblock %}
+{% block illustration %}cone-signalisation.png{% endblock %}
+{% block alt %}Un cône de signalisation entouré de fanions{% endblock %}
+{% block entete %}Votre accès a été suspendu{% endblock %}
+
+{% block contenu %}
+    <tr><td class="sc-pad" style="padding:14px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:27px;color:#47544f;mso-line-height-rule:exactly;">
+      L'accès à votre compte a été suspendu par un administrateur de la commune.
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:28px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background-color:#f1f7f5;border-radius:6px;">
+      <tr><td style="padding:22px 24px 22px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;mso-line-height-rule:exactly;">
+        <span style="display:block;font-size:12px;line-height:18px;letter-spacing:.08em;text-transform:uppercase;color:#7d8a85;padding-bottom:6px;">Motif</span>
+        {{ motif }}
+        <span style="display:block;font-size:12px;line-height:18px;letter-spacing:.08em;text-transform:uppercase;color:#7d8a85;padding-top:16px;padding-bottom:6px;">Vos saisies</span>
+        Les données que vous avez enregistrées sont conservées et restent prises en compte dans le suivi.
+      </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:24px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;">
+      Si vous pensez qu'il s'agit d'une erreur, rapprochez-vous du service en charge du projet à la mairie.
+    </td></tr>
+{% endblock %}

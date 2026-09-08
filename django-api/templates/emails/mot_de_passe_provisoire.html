@@ -1,0 +1,37 @@
+{% extends "emails/base.html" %}
+{# Objet défini dans comptes/courriels.py : SUJETS["mot_de_passe_provisoire"] #}
+
+{% block titre %}Un mot de passe provisoire vous a été attribué{% endblock %}
+{% block preheader %}Le mot de passe ne figure pas dans ce message : il vous a été communiqué de vive voix.{% endblock %}
+{% block rubrique %}Sécurité{% endblock %}
+{% block illustration %}porte-voix.png{% endblock %}
+{% block alt %}Un porte-voix{% endblock %}
+{% block entete %}Un mot de passe provisoire vous a été attribué{% endblock %}
+
+{% block contenu %}
+    <tr><td class="sc-pad" style="padding:14px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:27px;color:#47544f;mso-line-height-rule:exactly;">
+      {{ auteur }} vous a attribué un nouveau mot de passe provisoire pour votre compte.
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:28px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background-color:#f1f7f5;border-radius:6px;">
+      <tr><td style="padding:22px 24px 22px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;mso-line-height-rule:exactly;">
+        Ce mot de passe vous a été communiqué <span style="font-weight:bold;color:#16211e;">de vive voix</span>. Il ne figure pas dans ce message, volontairement : un courriel se lit par-dessus l'épaule et se conserve indéfiniment.
+      </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:28px 36px 0 36px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center" bgcolor="#1e856c" style="border-radius:6px;">
+        <a href="{{ lien_connexion }}" style="display:block;padding:15px 34px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:20px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:6px;">
+          Me connecter et choisir mon mot de passe
+        </a>
+      </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td class="sc-pad" style="padding:24px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;">
+      Dès votre connexion, choisissez un mot de passe connu de vous seul.
+    </td></tr>
+{% endblock %}

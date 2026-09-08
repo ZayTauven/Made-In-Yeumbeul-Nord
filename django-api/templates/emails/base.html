@@ -1,0 +1,116 @@
+{% comment %}
+Gabarit de base des courriels — MADE IN YEUMBEUL NORD
+====================================================
+
+Adapté des gabarits du projet Yessal Gui, dont la structure est conservée :
+tableaux HTML, largeur fixe de 600 px, styles en ligne, correctif MSO pour
+Outlook. C'est la seule construction qui tienne dans les clients de messagerie,
+qui ignorent la moitié du CSS moderne.
+
+**Les couleurs sont en dur, et c'est inévitable** : aucun client de messagerie
+ne lit les variables CSS, donc `var(--ax-accent)` n'y afficherait rien. Elles
+sont réunies ici, dans ce seul fichier, pour que la bascule reste un geste
+unique le jour où la charte sera arrêtée. Les valeurs reprennent l'accent natif
+du template Vireo — verdigris #1E856C — conformément au gel de charte
+(CLAUDE.md §3) : rien n'est inventé.
+
+    Accent            #1E856C   verdigris natif de Vireo
+    Accent foncé      #166B57   même teinte, pour le survol et les liens
+    Fond de page      #EEF2F1
+    Surface           #FFFFFF
+    Texte fort        #16211E
+    Texte courant     #47544F
+    Texte discret     #7D8A85
+    Surface douce     #F1F7F5   encarts
+    Bordure           #DFE7E4
+
+Les illustrations sont **jointes au message**, pas chargées depuis un serveur :
+`src="cid:…"`. Un client qui bloque les images distantes — la plupart le font
+par défaut — n'afficherait rien, et la plateforme doit tenir sans connexion.
+
+Blocs à définir dans les gabarits qui héritent :
+    titre · preheader · rubrique · illustration · alt · entete · contenu
+{% endcomment %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{% block titre %}Made in Yeumbeul Nord{% endblock %}</title>
+<!--[if mso]>
+<style>body,table,td,a{font-family:Arial,Helvetica,sans-serif !important}</style>
+<![endif]-->
+<style>
+  @media only screen and (max-width:620px){
+    .sc-pad{padding-left:26px !important;padding-right:26px !important}
+    .sc-h1{font-size:24px !important;line-height:32px !important}
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#eef2f1;">
+{# Texte d'aperçu, affiché par la liste des messages avant ouverture. #}
+<span style="display:none;font-size:1px;color:#eef2f1;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">{% block preheader %}{% endblock %}</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#eef2f1;">
+<tr><td align="center" style="padding:28px 12px 44px 12px;">
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#ffffff;">
+
+    {# --- En-tête ------------------------------------------------------- #}
+    <tr><td bgcolor="#1e856c" style="background-color:#1e856c;padding:0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+      <tr>
+        <td class="sc-pad" style="padding:26px 36px 26px 36px;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:24px;font-weight:bold;color:#ffffff;letter-spacing:.02em;">
+          Made in Yeumbeul&nbsp;Nord
+        </td>
+        <td align="right" class="sc-pad" style="padding:26px 36px 26px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:24px;color:#bfe3d8;letter-spacing:.08em;text-transform:uppercase;">
+          {% block rubrique %}Notification{% endblock %}
+        </td>
+      </tr>
+      </table>
+    </td></tr>
+
+    {# --- Illustration, jointe au message ------------------------------- #}
+    {% block bloc_illustration %}
+    <tr><td class="sc-pad" style="padding:40px 36px 0 36px;">
+      <img src="cid:{% block illustration %}presse-papiers.png{% endblock %}"
+           width="112" height="112" alt="{% block alt %}{% endblock %}"
+           style="display:block;width:112px;height:112px;border:0;outline:none;text-decoration:none;">
+    </td></tr>
+    {% endblock %}
+
+    {# --- Titre --------------------------------------------------------- #}
+    <tr><td class="sc-pad sc-h1" style="padding:22px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:27px;line-height:36px;font-weight:bold;color:#16211e;mso-line-height-rule:exactly;">
+      {% block entete %}{% endblock %}
+    </td></tr>
+
+    {# --- Salutation ---------------------------------------------------- #}
+    <tr><td class="sc-pad" style="padding:20px 36px 0 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:27px;color:#47544f;mso-line-height-rule:exactly;">
+      Bonjour {{ prenom }},
+    </td></tr>
+
+    {# --- Corps --------------------------------------------------------- #}
+    {% block contenu %}{% endblock %}
+
+    {# --- Signature ----------------------------------------------------- #}
+    <tr><td class="sc-pad" style="padding:20px 36px 40px 36px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#47544f;">
+      Jërëjëf.<br>
+      <span style="color:#7d8a85;">L'équipe {{ nom_expediteur }}</span>
+    </td></tr>
+
+    {% block postscriptum %}{% endblock %}
+
+    {# --- Pied ---------------------------------------------------------- #}
+    <tr><td bgcolor="#f6f9f8" class="sc-pad" style="background-color:#f6f9f8;padding:24px 36px 26px 36px;border-top:1px solid #dfe7e4;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;color:#7d8a85;">
+      Projet <em>And Jappo Meunal Souniou Bopp</em> — se rassembler pour compter sur soi-même.<br>
+      <a href="{{ base_url }}" style="color:#1e856c;text-decoration:underline;">Accéder à la plateforme</a><br>
+      <span style="color:#9aa5a1;">© {{ annee }} Commune de Yeumbeul Nord — Sénégal</span>
+    </td></tr>
+
+  </table>
+
+</td></tr>
+</table>
+</body>
+</html>

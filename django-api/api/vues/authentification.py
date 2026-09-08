@@ -18,10 +18,24 @@ Les appels doivent porter `credentials: "include"` : sans cela le navigateur
 n'envoie pas le cookie, et l'API répondra 403 sur toutes les écritures.
 """
 
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.conf import settings
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    login,
+    logout,
+    update_session_auth_hash,
+)
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError as ValidationDjango
+from django.db.models import Q
 from django.middleware.csrf import get_token
-from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.decorators import method_decorator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.views.decorators.debug import sensitive_post_parameters
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -31,9 +45,12 @@ from api.permissions import EstAuthentifie
 from api.serialiseurs.comptes import (
     ChangementMotDePasseSerializer,
     ConnexionSerializer,
+    DemandeReinitialisationSerializer,
     JetonCsrfSerializer,
     ProfilSerializer,
+    ReinitialisationSerializer,
 )
+from comptes.courriels import envoyer_mot_de_passe_modifie, envoyer_mot_de_passe_oublie
 from core.models import EvenementJournal
 from core.referentiels import CategorieJournal
 
@@ -159,4 +176,108 @@ class ChangementMotDePasseView(APIView):
             cible=request.user.username,
             categorie=CategorieJournal.SYSTEME,
         )
+        # Avertir même quand l'agent est à l'origine du changement : c'est ce
+        # message qui alerte le titulaire légitime quand ce n'est pas le cas.
+        envoyer_mot_de_passe_modifie(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DemandeReinitialisationView(APIView):
+    """Envoie un lien de réinitialisation.
+
+    Répond **204 dans tous les cas**, compte connu ou non. Distinguer les deux
+    transformerait cette route en annuaire : il suffirait d'y essayer des
+    adresses pour savoir lesquelles ont un compte.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    throttle_scope = "connexion"
+
+    @extend_schema(request=DemandeReinitialisationSerializer, responses={204: None})
+    def post(self, request):
+        entree = DemandeReinitialisationSerializer(data=request.data)
+        entree.is_valid(raise_exception=True)
+        identifiant = entree.validated_data["identifiant"].strip()
+
+        Utilisateur = get_user_model()
+        compte = Utilisateur.objects.filter(
+            Q(username__iexact=identifiant)
+            | Q(email__iexact=identifiant)
+            | Q(telephone=identifiant),
+            is_active=True,
+        ).first()
+
+        if compte is not None and compte.email:
+            uid = urlsafe_base64_encode(force_bytes(compte.pk))
+            jeton = default_token_generator.make_token(compte)
+            lien = (
+                f"{settings.FRONT_ADMIN_URL}/auth/reinitialiser"
+                f"?uid={uid}&jeton={jeton}"
+            )
+            envoyer_mot_de_passe_oublie(compte, lien)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(
+    sensitive_post_parameters("nouveau_mot_de_passe"), name="dispatch"
+)
+class ReinitialisationView(APIView):
+    """Consomme le lien reçu par courriel et pose le nouveau mot de passe."""
+
+    authentication_classes = []
+    permission_classes = []
+    throttle_scope = "connexion"
+
+    @extend_schema(request=ReinitialisationSerializer, responses={204: None})
+    def post(self, request):
+        entree = ReinitialisationSerializer(data=request.data)
+        entree.is_valid(raise_exception=True)
+
+        compte = self._compte_du_lien(entree.validated_data["uid"])
+        if compte is None or not default_token_generator.check_token(
+            compte, entree.validated_data["jeton"]
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "Ce lien n'est plus valable. Demandez-en un nouveau "
+                        "depuis la page de connexion."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        nouveau = entree.validated_data["nouveau_mot_de_passe"]
+        try:
+            # Second passage, cette fois avec le compte : il refuse un mot de
+            # passe trop proche du nom ou du courriel du titulaire.
+            validate_password(nouveau, user=compte)
+        except ValidationDjango as erreur:
+            return Response(
+                {"nouveau_mot_de_passe": list(erreur.messages)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        compte.set_password(nouveau)
+        compte.save(update_fields=["password"])
+
+        EvenementJournal.objects.create(
+            acteur=compte.nom_complet or compte.username,
+            acteur_teinte=compte.avatar_teinte,
+            action="Réinitialisation du mot de passe",
+            cible=compte.username,
+            categorie=CategorieJournal.SYSTEME,
+        )
+        envoyer_mot_de_passe_modifie(compte)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def _compte_du_lien(uid: str):
+        """Retrouve le compte depuis l'identifiant encodé du lien."""
+        try:
+            cle = force_str(urlsafe_base64_decode(uid))
+            return get_user_model().objects.get(pk=cle, is_active=True)
+        except (TypeError, ValueError, OverflowError, ObjectDoesNotExist):
+            return None
