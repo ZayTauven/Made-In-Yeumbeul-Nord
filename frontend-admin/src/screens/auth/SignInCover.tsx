@@ -12,9 +12,9 @@
  * backend : un agent municipal retient plus sûrement son numéro que
  * l'identifiant qu'on lui a attribué.
  */
-import { useState, type FormEvent } from 'react';
+import { Suspense, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { ErreurApi } from '../../services/api';
@@ -22,9 +22,22 @@ import { seConnecter } from '../../services/authentification';
 import { EYE, EYE_OFF } from './authShared';
 import { AlerteErreur, CadreAuth, EnteteAuth } from './communAuth';
 
-export function SignInCover() {
+/**
+ * Destination après connexion.
+ *
+ * `suite` vient de l'URL, donc de l'extérieur : on n'y accepte qu'un chemin
+ * interne. Un `//exemple.test` y serait lu comme une adresse absolue par le
+ * navigateur, et la page de connexion deviendrait un tremplin de redirection.
+ */
+function destinationSure(suite: string | null): string {
+  if (!suite || !suite.startsWith('/') || suite.startsWith('//')) return '/';
+  return suite;
+}
+
+function ContenuConnexion() {
   const t = useTranslations('auth.connexion');
   const routeur = useRouter();
+  const suite = destinationSure(useSearchParams().get('suite'));
 
   const [identifiant, setIdentifiant] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
@@ -52,7 +65,7 @@ export function SignInCover() {
       await seConnecter(identifiant.trim(), motDePasse);
       // `refresh()` force le rendu serveur à relire la session : sans lui, le
       // shell resterait sur son rendu d'avant connexion.
-      routeur.replace('/');
+      routeur.replace(suite);
       routeur.refresh();
     } catch (cause) {
       if (cause instanceof ErreurApi) {
@@ -151,6 +164,18 @@ export function SignInCover() {
         {t('aide')}
       </p>
     </CadreAuth>
+  );
+}
+
+/**
+ * `useSearchParams` — pour lire `?suite=` — impose une frontière `Suspense` :
+ * sans elle, le prérendu de la page échoue à la construction.
+ */
+export function SignInCover() {
+  return (
+    <Suspense fallback={<CadreAuth><span /></CadreAuth>}>
+      <ContenuConnexion />
+    </Suspense>
   );
 }
 

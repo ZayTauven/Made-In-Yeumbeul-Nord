@@ -10,10 +10,32 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AuthStandalone } from './authShared';
 import { PanneauIllustration } from './PanneauIllustration';
 
+/*
+ * La mise en page du split vit **entièrement** ici, et non pour moitié dans des
+ * styles en ligne.
+ *
+ * Le template posait `grid-template-columns: 1fr` en style en ligne et comptait
+ * sur cette feuille pour le remplacer à partir de 992 px. Un style en ligne
+ * l'emporte toujours sur une règle de feuille de style : la colonne unique ne
+ * cédait jamais, et comme le panneau, lui, apparaissait bien — sa règle portait
+ * `!important` —, la photographie s'empilait AU-DESSUS du formulaire. D'où le
+ * split horizontal constaté.
+ */
 const STYLE_SPLIT = `
+.ax-auth-cover {
+  position: relative;
+  z-index: 1;
+  min-block-size: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.ax-auth-cover__panel { display: none; }
+
 @media (min-width: 992px) {
+  /* Deux colonnes côte à côte : la photographie occupe la moitié gauche sur
+     toute la hauteur, le formulaire la moitié droite. */
   .ax-auth-cover { grid-template-columns: 52% 48%; }
-  .ax-auth-cover__panel { display: flex !important; }
+  .ax-auth-cover__panel { display: flex; }
 }
 `;
 
@@ -77,16 +99,9 @@ export function CadreAuth({ children }: { children: ReactNode }) {
   return (
     <AuthStandalone cover>
       <style>{STYLE_SPLIT}</style>
-      <div
-        className="ax-auth-cover"
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          minBlockSize: '100dvh',
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-        }}
-      >
+      {/* Aucun style en ligne sur ce conteneur : la grille est réglée par
+          STYLE_SPLIT, sans quoi la media query ne pourrait pas la reprendre. */}
+      <div className="ax-auth-cover">
         <PanneauIllustration />
 
         <main

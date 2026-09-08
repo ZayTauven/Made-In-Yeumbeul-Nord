@@ -42,10 +42,15 @@ export function PanneauIllustration() {
   return (
     <aside
       className="ax-auth-cover__panel"
+      /*
+       * `display` est réglé par `STYLE_SPLIT` (masqué en dessous de 992 px,
+       * `flex` au-delà) et volontairement absent d'ici : un style en ligne
+       * l'emporterait sur la media query, et le panneau ne s'afficherait
+       * jamais — ou jamais au bon endroit.
+       */
       style={{
         position: 'relative',
         overflow: 'hidden',
-        display: 'none',
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: 'var(--ax-space-10)',
