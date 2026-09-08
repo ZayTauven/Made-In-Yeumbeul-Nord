@@ -9,7 +9,6 @@
     "aPropos": "Le projet",
     "contact": "Contact"
   },
-
   "accueil": {
     "heroTitre": "Le savoir-faire de Yeumbeul Nord, à portée de main",
     "heroChapeau": "Cent groupements de la commune produisent, transforment et vendent. Retrouvez-les ici, quartier par quartier, filière par filière.",
@@ -24,7 +23,6 @@
     "boutiquesTitre": "Où acheter",
     "boutiquesChapeau": "Trois boutiques témoins accueillent les productions des groupements accompagnés."
   },
-
   "annuaire": {
     "titre": "Les groupements de Yeumbeul Nord",
     "chapeau": "Cent groupements recensés, accompagnés et suivis par la Commune.",
@@ -33,9 +31,19 @@
     "filtreQuartier": "Quartier",
     "filtreEtape": "Étape d'accompagnement",
     "vueGrille": "Grille",
-    "vueListe": "Liste"
+    "vueListe": "Liste",
+    "toutesFilieres": "Toutes les filières",
+    "membres": "{nombre, plural, one {# membre} other {# membres}}",
+    "productions": "{nombre, plural, =0 {Aucune production} one {# production} other {# productions}}",
+    "voirLaFiche": "Voir le groupement",
+    "note": "{note} sur 5",
+    "sansNote": "Pas encore d'appréciation",
+    "aucunResultat": "Aucun groupement ne correspond à ce filtre.",
+    "retirerFiltre": "Voir tous les groupements",
+    "pagePrecedente": "Page précédente",
+    "pageSuivante": "Page suivante",
+    "page": "Page {courante} sur {total}"
   },
-
   "groupement": {
     "membres": "Membres",
     "productions": "Ses productions",
@@ -48,7 +56,6 @@
     "aucuneProduction": "Ce groupement n'a pas encore publié de production.",
     "partFemmes": "{valeur} % de femmes"
   },
-
   "catalogue": {
     "titre": "Les productions",
     "chapeau": "Tout ce que produisent les groupements de la commune, du savon au couscous de mil.",
@@ -62,7 +69,6 @@
     "prixMax": "Prix maximum",
     "disponiblesSeulement": "Disponibles uniquement"
   },
-
   "production": {
     "producteur": "Produit par",
     "unite": "Conditionnement",
@@ -72,7 +78,6 @@
     "similaires": "Productions similaires",
     "duMemeGroupement": "Du même groupement"
   },
-
   "panier": {
     "titre": "Mon panier",
     "vide": "Votre panier est vide",
@@ -84,7 +89,6 @@
     "vendeurs": "{nombre, plural, one {# groupement vendeur} other {# groupements vendeurs}}",
     "vendeursIndice": "Votre commande sera transmise à chaque groupement concerné."
   },
-
   "commande": {
     "titre": "Finaliser la commande",
     "coordonnees": "Vos coordonnées",
@@ -99,13 +103,11 @@
       "annulee": "Annulée"
     }
   },
-
   "aPropos": {
     "titre": "And Jappo Meunal Souniou Bopp",
     "sousTitre": "Se rassembler pour compter sur soi-même",
     "chapeau": "Un projet de la Commune de Yeumbeul Nord pour structurer, former et faire connaître les groupements de son territoire."
   },
-
   "piedDePage": {
     "mentionInstitutionnelle": "Une initiative de la Commune de Yeumbeul Nord",
     "mentionsLegales": "Mentions légales",

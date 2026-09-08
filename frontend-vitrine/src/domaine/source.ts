@@ -20,6 +20,24 @@
  *
  * La spécification lisible par le backend est tenue à jour dans
  * `PLAN & PRODUCT/15-CONTRAT-API.md`.
+ *
+ * ÉTAT DE LA BASCULE — 8 septembre 2026
+ * -------------------------------------
+ * **Les 39 fonctions passent par `depuisApi()`.** Aucune signature n'a changé,
+ * donc aucun écran n'a bougé.
+ *
+ * Chacune garde son calcul local **en repli** : si l'API ne répond pas dans les
+ * quatre secondes, l'écran s'affiche quand même avec le jeu à graine fixe. La
+ * démonstration du 31 octobre doit tenir sans connexion, API arrêtée ou poste
+ * hors ligne.
+ *
+ * Les cartes d'en-tête méritent une mention. Trois d'entre elles — membres
+ * formés, taux de certification, taux de présence — sont des **indicateurs du
+ * cadre logique**, et non des séries recalculées. Le serveur les construit de
+ * la même façon que ce fichier le faisait (`carte_indicateur()` dans
+ * `api/agregations.py`) : c'est ce qui garantit qu'une carte ne contredit
+ * jamais la fiche d'indicateur correspondante. Recalculer la valeur à part
+ * aurait fini par diverger d'un relevé.
  */
 
 import {
@@ -30,6 +48,7 @@ import {
   formaterNombre,
   formaterPourcentage,
 } from './referentiels';
+import { depuisApi } from './api';
 import { DATE_REFERENCE, jeuDeDonnees } from './generateur';
 import type {
   Activite,
@@ -58,8 +77,23 @@ import type {
   SessionFormation,
 } from './types';
 
-/** Vrai lorsque l'API Django est branchée. Aucun écran n'a besoin de le savoir. */
-export const API_BRANCHEE = Boolean(process.env.NEXT_PUBLIC_API_URL);
+export { API_BRANCHEE } from './api';
+
+/**
+ * Correspondance entre le tri du contrat front et le paramètre `ordering` de
+ * DRF. Les écrans parlent de « membres » ou de « note » ; l'API attend le nom
+ * de la colonne, précédé d'un tiret pour l'ordre décroissant.
+ */
+const ORDONNANCEMENT: Record<string, string> = {
+  membres: '-nombre_membres',
+  progression: '-progression',
+  chiffre_affaires: '-chiffre_affaires_fcfa',
+  note: '-note_moyenne',
+  nom: 'nom',
+  prix_croissant: 'prix_unitaire_fcfa',
+  prix_decroissant: '-prix_unitaire_fcfa',
+  nouveaute: '-date_ajout',
+};
 
 function paginer<T>(elements: T[], page = 1, taille = 24): Page<T> {
   const debut = (page - 1) * taille;
@@ -82,12 +116,12 @@ function sansAccent(texte: string): string {
 
 /** `GET /api/quartiers/` */
 export async function listerQuartiers(): Promise<Quartier[]> {
-  return jeuDeDonnees().quartiers;
+  return depuisApi('/quartiers/', () => jeuDeDonnees().quartiers);
 }
 
 /** `GET /api/filieres/` */
 export async function listerFilieres(): Promise<Filiere[]> {
-  return jeuDeDonnees().filieres;
+  return depuisApi('/filieres/', () => jeuDeDonnees().filieres);
 }
 
 /* ========================================================================= *
@@ -111,6 +145,23 @@ export interface FiltresGroupements {
  * `statut_juridique`, `ordering`.
  */
 export async function listerGroupements(filtres: FiltresGroupements = {}): Promise<Page<Groupement>> {
+  return depuisApi(
+    '/groupements/',
+    () => listerGroupementsLocal(filtres),
+    {
+      page: filtres.page,
+      page_size: filtres.taille ?? 24,
+      search: filtres.recherche,
+      filiere: filtres.filiere,
+      quartier: filtres.quartier,
+      etape: filtres.etape,
+      statut_juridique: filtres.statut_juridique,
+      ordering: ORDONNANCEMENT[filtres.tri ?? 'nom'],
+    },
+  );
+}
+
+function listerGroupementsLocal(filtres: FiltresGroupements): Page<Groupement> {
   let liste = [...jeuDeDonnees().groupements];
 
   if (filtres.recherche) {
@@ -150,22 +201,41 @@ export async function listerGroupements(filtres: FiltresGroupements = {}): Promi
 
 /** `GET /api/groupements/{slug}/` */
 export async function obtenirGroupement(slug: string): Promise<Groupement | null> {
-  return jeuDeDonnees().groupements.find((g) => g.slug === slug) ?? null;
+  return depuisApi(
+    `/groupements/${encodeURIComponent(slug)}/`,
+    () => jeuDeDonnees().groupements.find((g) => g.slug === slug) ?? null,
+  );
 }
 
-/** `GET /api/groupements/{slug}/membres/` */
+/*
+ * Les trois sous-ressources reçoivent un **identifiant**, pas un slug : c'est
+ * la signature qu'attendent les écrans, et la bascule ne doit toucher aucune
+ * signature. L'API accepte les deux formes — voir `MixinSlugOuIdentifiant`
+ * côté Django —, ce qui évite un aller-retour pour convertir l'un en l'autre.
+ */
+
+/** `GET /api/groupements/{id}/membres/` */
 export async function membresDuGroupement(groupementId: number): Promise<Membre[]> {
-  return jeuDeDonnees().membres.filter((m) => m.groupement_id === groupementId);
+  return depuisApi(
+    `/groupements/${groupementId}/membres/`,
+    () => jeuDeDonnees().membres.filter((m) => m.groupement_id === groupementId),
+  );
 }
 
-/** `GET /api/groupements/{slug}/productions/` */
+/** `GET /api/groupements/{id}/productions/` */
 export async function productionsDuGroupement(groupementId: number): Promise<Production[]> {
-  return jeuDeDonnees().productions.filter((p) => p.groupement_id === groupementId);
+  return depuisApi(
+    `/groupements/${groupementId}/productions/`,
+    () => jeuDeDonnees().productions.filter((p) => p.groupement_id === groupementId),
+  );
 }
 
-/** `GET /api/groupements/{slug}/financements/` */
+/** `GET /api/groupements/{id}/financements/` */
 export async function financementsDuGroupement(groupementId: number): Promise<Financement[]> {
-  return jeuDeDonnees().financements.filter((f) => f.groupement_id === groupementId);
+  return depuisApi(
+    `/groupements/${groupementId}/financements/`,
+    () => jeuDeDonnees().financements.filter((f) => f.groupement_id === groupementId),
+  );
 }
 
 /**
@@ -187,18 +257,20 @@ export interface PointCarte {
 }
 
 export async function groupementsSurLaCarte(): Promise<PointCarte[]> {
-  return jeuDeDonnees().groupements.map((g) => ({
-    id: g.id,
-    nom: g.nom,
-    slug: g.slug,
-    latitude: g.latitude,
-    longitude: g.longitude,
-    quartier: g.quartier.nom,
-    filiere: g.filiere.nom,
-    filiere_teinte: g.filiere.teinte,
-    etape: g.etape,
-    nombre_membres: g.nombre_membres,
-  }));
+  return depuisApi('/groupements/carte/', () =>
+    jeuDeDonnees().groupements.map((g) => ({
+      id: g.id,
+      nom: g.nom,
+      slug: g.slug,
+      latitude: g.latitude,
+      longitude: g.longitude,
+      quartier: g.quartier.nom,
+      filiere: g.filiere.nom,
+      filiere_teinte: g.filiere.teinte,
+      etape: g.etape,
+      nombre_membres: g.nombre_membres,
+    })),
+  );
 }
 
 /* ========================================================================= *
@@ -224,6 +296,27 @@ export interface FiltresProductions {
  * `prix_min`, `prix_max`, `disponible`, `ordering`.
  */
 export async function listerProductions(filtres: FiltresProductions = {}): Promise<Page<Production>> {
+  return depuisApi(
+    '/productions/',
+    () => listerProductionsLocal(filtres),
+    {
+      page: filtres.page,
+      page_size: filtres.taille ?? 24,
+      search: filtres.recherche,
+      filiere: filtres.filiere,
+      quartier: filtres.quartier,
+      groupement: filtres.groupement,
+      prix_min: filtres.prix_min,
+      prix_max: filtres.prix_max,
+      // `disponible=false` n'est pas un filtre mais l'absence de filtre : les
+      // écrans ne demandent que les disponibles, jamais les seules ruptures.
+      disponible: filtres.disponible ? 'true' : undefined,
+      ordering: ORDONNANCEMENT[filtres.tri ?? 'nom'],
+    },
+  );
+}
+
+function listerProductionsLocal(filtres: FiltresProductions): Page<Production> {
   const { groupements } = jeuDeDonnees();
   let liste = [...jeuDeDonnees().productions];
 
@@ -267,19 +360,29 @@ export async function listerProductions(filtres: FiltresProductions = {}): Promi
 
 /** `GET /api/productions/{slug}/` */
 export async function obtenirProduction(slug: string): Promise<Production | null> {
-  return jeuDeDonnees().productions.find((p) => p.slug === slug) ?? null;
+  return depuisApi(
+    `/productions/${encodeURIComponent(slug)}/`,
+    () => jeuDeDonnees().productions.find((p) => p.slug === slug) ?? null,
+  );
 }
 
 /** `GET /api/productions/{slug}/similaires/` */
 export async function productionsSimilaires(production: Production, limite = 4): Promise<Production[]> {
-  return jeuDeDonnees()
-    .productions.filter((p) => p.filiere_id === production.filiere_id && p.id !== production.id)
-    .slice(0, limite);
+  return depuisApi(
+    `/productions/${encodeURIComponent(production.slug)}/similaires/`,
+    () =>
+      jeuDeDonnees()
+        .productions.filter((p) => p.filiere_id === production.filiere_id && p.id !== production.id)
+        .slice(0, limite),
+    { limite },
+  );
 }
 
 /** `GET /api/productions/en-rupture/` — alimente les alertes du tableau de bord. */
 export async function productionsEnAlerte(): Promise<Production[]> {
-  return jeuDeDonnees().productions.filter((p) => p.stock_disponible <= p.seuil_alerte);
+  return depuisApi('/productions/en-rupture/', () =>
+    jeuDeDonnees().productions.filter((p) => p.stock_disponible <= p.seuil_alerte),
+  );
 }
 
 /* ========================================================================= *
@@ -294,6 +397,10 @@ export async function productionsEnAlerte(): Promise<Production[]> {
  * qui contredit le tableau situé juste en dessous décrédibilise tout l'écran.
  */
 export async function kpisSuivi(): Promise<Kpi[]> {
+  return depuisApi('/suivi/kpis/', () => kpisSuiviLocal());
+}
+
+function kpisSuiviLocal(): Kpi[] {
   const { groupements, membres, productions, financements } = jeuDeDonnees();
 
   const totalMembres = membres.length;
@@ -386,16 +493,21 @@ export interface EtapeEntonnoir {
  * Répartition des groupements sur le parcours d'accompagnement.
  */
 export async function entonnoirAccompagnement(): Promise<EtapeEntonnoir[]> {
-  const { groupements } = jeuDeDonnees();
-  return ETAPES.map((etape) => {
-    const effectif = groupements.filter((g) => g.etape === etape).length;
-    return {
-      etape,
-      effectif,
-      part: Math.round((effectif / groupements.length) * 100),
-      progression: PROGRESSION_ETAPE[etape],
-    };
-  });
+  return depuisApi(
+    '/suivi/entonnoir/',
+    () => {
+    const { groupements } = jeuDeDonnees();
+    return ETAPES.map((etape) => {
+      const effectif = groupements.filter((g) => g.etape === etape).length;
+      return {
+        etape,
+        effectif,
+        part: Math.round((effectif / groupements.length) * 100),
+        progression: PROGRESSION_ETAPE[etape],
+      };
+    });
+    },
+  );
 }
 
 export interface Repartition {
@@ -408,40 +520,58 @@ export interface Repartition {
 
 /** `GET /api/suivi/repartition/?axe=filiere` */
 export async function repartitionParFiliere(): Promise<Repartition[]> {
-  const { filieres, groupements } = jeuDeDonnees();
-  return filieres
-    .map((f) => ({
-      libelle: f.nom,
-      slug: f.slug,
-      valeur: f.nombre_groupements,
-      part: Math.round((f.nombre_groupements / groupements.length) * 100),
-      teinte: f.teinte,
-    }))
-    .sort((x, y) => y.valeur - x.valeur);
+  return depuisApi(
+    '/suivi/repartition/',
+    () => {
+    const { filieres, groupements } = jeuDeDonnees();
+    return filieres
+      .map((f) => ({
+        libelle: f.nom,
+        slug: f.slug,
+        valeur: f.nombre_groupements,
+        part: Math.round((f.nombre_groupements / groupements.length) * 100),
+        teinte: f.teinte,
+      }))
+      .sort((x, y) => y.valeur - x.valeur);
+    },
+    { axe: 'filiere' }
+  );
 }
 
 /** `GET /api/suivi/repartition/?axe=quartier` */
 export async function repartitionParQuartier(): Promise<Repartition[]> {
-  const { quartiers, groupements } = jeuDeDonnees();
-  return quartiers
-    .map((q) => ({
-      libelle: q.nom,
-      slug: q.slug,
-      valeur: q.nombre_groupements,
-      part: Math.round((q.nombre_groupements / groupements.length) * 100),
-    }))
-    .sort((x, y) => y.valeur - x.valeur);
+  return depuisApi(
+    '/suivi/repartition/',
+    () => {
+    const { quartiers, groupements } = jeuDeDonnees();
+    return quartiers
+      .map((q) => ({
+        libelle: q.nom,
+        slug: q.slug,
+        valeur: q.nombre_groupements,
+        part: Math.round((q.nombre_groupements / groupements.length) * 100),
+      }))
+      .sort((x, y) => y.valeur - x.valeur);
+    },
+    { axe: 'quartier' }
+  );
 }
 
 /** `GET /api/suivi/repartition/?axe=genre` */
 export async function repartitionParGenre(): Promise<Repartition[]> {
-  const { membres } = jeuDeDonnees();
-  const femmes = membres.filter((m) => m.genre === 'femme').length;
-  const hommes = membres.length - femmes;
-  return [
-    { libelle: 'Femmes', slug: 'femme', valeur: femmes, part: Math.round((femmes / membres.length) * 100) },
-    { libelle: 'Hommes', slug: 'homme', valeur: hommes, part: Math.round((hommes / membres.length) * 100) },
-  ];
+  return depuisApi(
+    '/suivi/repartition/',
+    () => {
+    const { membres } = jeuDeDonnees();
+    const femmes = membres.filter((m) => m.genre === 'femme').length;
+    const hommes = membres.length - femmes;
+    return [
+      { libelle: 'Femmes', slug: 'femme', valeur: femmes, part: Math.round((femmes / membres.length) * 100) },
+      { libelle: 'Hommes', slug: 'homme', valeur: hommes, part: Math.round((hommes / membres.length) * 100) },
+    ];
+    },
+    { axe: 'genre' }
+  );
 }
 
 /** Croisement quartier × filière — alimente la table d'analyse territoriale. */
@@ -456,21 +586,27 @@ export async function croisementQuartierFiliere(): Promise<{
   colonnes: string[];
   lignes: CelluleCroisee[];
 }> {
-  const { quartiers, filieres, groupements } = jeuDeDonnees();
-  const colonnes = filieres.map((f) => f.nom);
+  return depuisApi(
+    '/suivi/croisement/',
+    () => {
+      const { quartiers, filieres, groupements } = jeuDeDonnees();
+      const colonnes = filieres.map((f) => f.nom);
 
-  const lignes = quartiers.map((q) => {
-    const valeurs: Record<string, number> = {};
-    let total = 0;
-    for (const f of filieres) {
-      const n = groupements.filter((g) => g.quartier.id === q.id && g.filiere.id === f.id).length;
-      valeurs[f.nom] = n;
-      total += n;
-    }
-    return { quartier: q.nom, valeurs, total };
-  });
+      const lignes = quartiers.map((q) => {
+        const valeurs: Record<string, number> = {};
+        let total = 0;
+        for (const f of filieres) {
+          const n = groupements.filter((g) => g.quartier.id === q.id && g.filiere.id === f.id).length;
+          valeurs[f.nom] = n;
+          total += n;
+        }
+        return { quartier: q.nom, valeurs, total };
+      });
 
-  return { colonnes, lignes };
+      return { colonnes, lignes };
+    },
+    { lignes: 'quartier', colonnes: 'filiere' },
+  );
 }
 
 /* ------------------------------------------------------------------------- *
@@ -489,13 +625,18 @@ export interface CadreLogique {
  * Aucune de ces trois entités n'existe encore côté Django : elles sont à créer.
  */
 export async function cadreLogique(): Promise<CadreLogique> {
-  const { axes, resultats, indicateurs } = jeuDeDonnees();
-  return { axes, resultats, indicateurs };
+  return depuisApi('/suivi/cadre-logique/', () => {
+    const { axes, resultats, indicateurs } = jeuDeDonnees();
+    return { axes, resultats, indicateurs };
+  });
 }
 
 /** `GET /api/suivi/indicateurs/{code}/` */
 export async function obtenirIndicateur(code: string): Promise<Indicateur | null> {
-  return jeuDeDonnees().indicateurs.find((i) => i.code === code) ?? null;
+  return depuisApi(
+    `/suivi/indicateurs/${encodeURIComponent(code)}/`,
+    () => jeuDeDonnees().indicateurs.find((i) => i.code === code) ?? null,
+  );
 }
 
 /* ------------------------------------------------------------------------- *
@@ -504,21 +645,36 @@ export async function obtenirIndicateur(code: string): Promise<Indicateur | null
 
 /** `GET /api/activites/` */
 export async function listerActivites(filtres: { axe?: number; statut?: string } = {}): Promise<Activite[]> {
-  let liste = [...jeuDeDonnees().activites];
-  if (filtres.axe) liste = liste.filter((x) => x.axe_id === filtres.axe);
-  if (filtres.statut) liste = liste.filter((x) => x.statut === filtres.statut);
-  return liste;
+  return depuisApi(
+    '/activites/',
+    () => {
+      let liste = [...jeuDeDonnees().activites];
+      if (filtres.axe) liste = liste.filter((x) => x.axe_id === filtres.axe);
+      if (filtres.statut) liste = liste.filter((x) => x.statut === filtres.statut);
+      return liste;
+    },
+    { axe: filtres.axe, statut: filtres.statut },
+  );
 }
 
 /** `GET /api/activites/{code}/` */
 export async function obtenirActivite(code: string): Promise<Activite | null> {
-  return jeuDeDonnees().activites.find((x) => x.code === code) ?? null;
+  return depuisApi(
+    `/activites/${encodeURIComponent(code)}/`,
+    () => jeuDeDonnees().activites.find((x) => x.code === code) ?? null,
+  );
 }
 
 /** `GET /api/jalons/` — paramètre `decisif=1` pour la chronologie de la démo. */
 export async function listerJalons(options: { decisifsSeulement?: boolean } = {}): Promise<Jalon[]> {
-  const liste = jeuDeDonnees().jalons;
-  return options.decisifsSeulement ? liste.filter((j) => j.decisif) : liste;
+  return depuisApi(
+    '/jalons/',
+    () => {
+      const liste = jeuDeDonnees().jalons;
+      return options.decisifsSeulement ? liste.filter((j) => j.decisif) : liste;
+    },
+    { decisif: options.decisifsSeulement ? 1 : undefined },
+  );
 }
 
 /* ------------------------------------------------------------------------- *
@@ -548,34 +704,39 @@ export interface ResumePlanAction {
  * réécrire à la bascule.
  */
 export async function resumePlanAction(): Promise<ResumePlanAction> {
-  const { activites } = jeuDeDonnees();
+  return depuisApi(
+    '/activites/resume/',
+    () => {
+    const { activites } = jeuDeDonnees();
 
-  const ordre: StatutActivite[] = ['en_cours', 'terminee', 'planifiee', 'en_retard', 'suspendue'];
-  const engage = activites.reduce((s, a) => s + a.budget_prevu_fcfa, 0);
-  const consomme = activites.reduce((s, a) => s + a.budget_consomme_fcfa, 0);
-  const terminees = activites.filter((a) => a.statut === 'terminee').length;
+    const ordre: StatutActivite[] = ['en_cours', 'terminee', 'planifiee', 'en_retard', 'suspendue'];
+    const engage = activites.reduce((s, a) => s + a.budget_prevu_fcfa, 0);
+    const consomme = activites.reduce((s, a) => s + a.budget_consomme_fcfa, 0);
+    const terminees = activites.filter((a) => a.statut === 'terminee').length;
 
-  const parResponsable = new Map<string, number>();
-  for (const a of activites) {
-    parResponsable.set(a.responsable, (parResponsable.get(a.responsable) ?? 0) + 1);
-  }
+    const parResponsable = new Map<string, number>();
+    for (const a of activites) {
+      parResponsable.set(a.responsable, (parResponsable.get(a.responsable) ?? 0) + 1);
+    }
 
-  return {
-    total: activites.length,
-    par_statut: ordre.map((statut) => ({
-      statut,
-      effectif: activites.filter((a) => a.statut === statut).length,
-    })),
-    charge_par_responsable: [...parResponsable.entries()]
-      .map(([responsable, nombre]) => ({ responsable, activites: nombre }))
-      .sort((x, y) => y.activites - x.activites),
-    budget_engage_fcfa: engage,
-    budget_consomme_fcfa: consomme,
-    part_consommee: engage === 0 ? 0 : Math.round((consomme / engage) * 100),
-    avancement_moyen: moyenneEntiere(activites.map((a) => a.avancement)),
-    terminees,
-    ouvertes: activites.length - terminees,
-  };
+    return {
+      total: activites.length,
+      par_statut: ordre.map((statut) => ({
+        statut,
+        effectif: activites.filter((a) => a.statut === statut).length,
+      })),
+      charge_par_responsable: [...parResponsable.entries()]
+        .map(([responsable, nombre]) => ({ responsable, activites: nombre }))
+        .sort((x, y) => y.activites - x.activites),
+      budget_engage_fcfa: engage,
+      budget_consomme_fcfa: consomme,
+      part_consommee: engage === 0 ? 0 : Math.round((consomme / engage) * 100),
+      avancement_moyen: moyenneEntiere(activites.map((a) => a.avancement)),
+      terminees,
+      ouvertes: activites.length - terminees,
+    };
+    },
+  );
 }
 
 /** Profondeur des séries d'en-tête : huit fins de mois glissantes. */
@@ -593,6 +754,12 @@ const PROFONDEUR_SERIE = 8;
  * écran.
  */
 export async function kpisPlanAction(): Promise<Kpi[]> {
+  return depuisApi('/suivi/kpis/', () => kpisPlanActionLocal(), {
+    tableau: 'plan-action',
+  });
+}
+
+function kpisPlanActionLocal(): Kpi[] {
   const { activites, jalons, indicateurs } = jeuDeDonnees();
 
   const bornes = Array.from({ length: PROFONDEUR_SERIE }, (_, i) => {
@@ -756,20 +923,26 @@ function moyenneEntiere(valeurs: number[]): number {
 
 /** `GET /api/formations/` */
 export async function listerFormations(): Promise<Formation[]> {
-  return jeuDeDonnees().formations;
+  return depuisApi('/formations/', () => jeuDeDonnees().formations);
 }
 
 /** `GET /api/sessions/` */
 export async function listerSessions(filtres: { formation?: number; statut?: string } = {}): Promise<SessionFormation[]> {
-  let liste = [...jeuDeDonnees().sessions];
-  if (filtres.formation) liste = liste.filter((s) => s.formation_id === filtres.formation);
-  if (filtres.statut) liste = liste.filter((s) => s.statut === filtres.statut);
-  return liste;
+  return depuisApi(
+    '/sessions/',
+    () => {
+      let liste = [...jeuDeDonnees().sessions];
+      if (filtres.formation) liste = liste.filter((s) => s.formation_id === filtres.formation);
+      if (filtres.statut) liste = liste.filter((s) => s.statut === filtres.statut);
+      return liste;
+    },
+    { formation: filtres.formation, statut: filtres.statut },
+  );
 }
 
 /** `GET /api/certifications/` */
 export async function listerCertifications(): Promise<Certification[]> {
-  return jeuDeDonnees().certifications;
+  return depuisApi('/certifications/', () => jeuDeDonnees().certifications);
 }
 
 /* ------------------------------------------------------------------------- *
@@ -820,6 +993,10 @@ const LIBELLE_TYPE_MODULE: Record<Formation['type_module'], string> = {
  * compte mille sept cents serait un mensonge visible à l'œil nu.
  */
 export async function resumeFormations(): Promise<ResumeFormations> {
+  return depuisApi('/formations/resume/', () => resumeFormationsLocal());
+}
+
+function resumeFormationsLocal(): ResumeFormations {
   const { formations, sessions, certifications, statistiquesFormation } = jeuDeDonnees();
 
   const tenues = sessions.filter((x) => x.statut === 'terminee');
@@ -910,6 +1087,12 @@ function activiteMensuelle(tenues: SessionFormation[]): MoisFormation[] {
  * de ses collectes en sparkline. C'est le contraire d'un chiffre décoratif.
  */
 export async function kpisFormations(): Promise<Kpi[]> {
+  return depuisApi('/suivi/kpis/', () => kpisFormationsLocal(), {
+    tableau: 'formations',
+  });
+}
+
+function kpisFormationsLocal(): Kpi[] {
   const { indicateurs, sessions } = jeuDeDonnees();
   const parCode = new Map(indicateurs.map((i) => [i.code, i]));
 
@@ -966,10 +1149,16 @@ export async function kpisFormations(): Promise<Kpi[]> {
 
 /** `GET /api/financements/` */
 export async function listerFinancements(filtres: { statut?: string; type?: string } = {}): Promise<Financement[]> {
-  let liste = [...jeuDeDonnees().financements];
-  if (filtres.statut) liste = liste.filter((f) => f.statut === filtres.statut);
-  if (filtres.type) liste = liste.filter((f) => f.type_financement === filtres.type);
-  return liste;
+  return depuisApi(
+    '/financements/',
+    () => {
+      let liste = [...jeuDeDonnees().financements];
+      if (filtres.statut) liste = liste.filter((f) => f.statut === filtres.statut);
+      if (filtres.type) liste = liste.filter((f) => f.type_financement === filtres.type);
+      return liste;
+    },
+    { statut: filtres.statut, type: filtres.type },
+  );
 }
 
 export interface ResumeFinancement {
@@ -985,46 +1174,51 @@ export interface ResumeFinancement {
 
 /** `GET /api/financements/resume/` */
 export async function resumeFinancement(): Promise<ResumeFinancement> {
-  const { financements } = jeuDeDonnees();
+  return depuisApi(
+    '/financements/resume/',
+    () => {
+    const { financements } = jeuDeDonnees();
 
-  const decaisse = financements.reduce((s, f) => s + f.montant_fcfa, 0);
-  const rembourse = financements.reduce((s, f) => s + f.montant_rembourse_fcfa, 0);
-  const remboursables = financements.filter(
-    (f) => f.type_financement === 'credit_rotatif' || f.type_financement === 'fonds_de_roulement',
-  );
-  const duRemboursable = remboursables.reduce((s, f) => s + f.montant_fcfa, 0);
+    const decaisse = financements.reduce((s, f) => s + f.montant_fcfa, 0);
+    const rembourse = financements.reduce((s, f) => s + f.montant_rembourse_fcfa, 0);
+    const remboursables = financements.filter(
+      (f) => f.type_financement === 'credit_rotatif' || f.type_financement === 'fonds_de_roulement',
+    );
+    const duRemboursable = remboursables.reduce((s, f) => s + f.montant_fcfa, 0);
 
-  const types = ['subvention', 'credit_rotatif', 'equipement', 'fonds_de_roulement'] as const;
-  const libelles: Record<string, string> = {
-    subvention: 'Subvention',
-    credit_rotatif: 'Crédit rotatif',
-    equipement: 'Dotation en équipement',
-    fonds_de_roulement: 'Fonds de roulement',
-  };
-
-  const par_type: Repartition[] = types.map((t, i) => {
-    const montant = financements
-      .filter((f) => f.type_financement === t)
-      .reduce((s, f) => s + f.montant_fcfa, 0);
-    return {
-      libelle: libelles[t],
-      slug: t,
-      valeur: montant,
-      part: Math.round((montant / decaisse) * 100),
-      teinte: `var(--ax-chart-${i + 1})`,
+    const types = ['subvention', 'credit_rotatif', 'equipement', 'fonds_de_roulement'] as const;
+    const libelles: Record<string, string> = {
+      subvention: 'Subvention',
+      credit_rotatif: 'Crédit rotatif',
+      equipement: 'Dotation en équipement',
+      fonds_de_roulement: 'Fonds de roulement',
     };
-  });
 
-  return {
-    total_decaisse_fcfa: decaisse,
-    total_rembourse_fcfa: rembourse,
-    taux_remboursement: duRemboursable === 0 ? 0 : Math.round((rembourse / duRemboursable) * 100),
-    groupements_finances: new Set(financements.map((f) => f.groupement_id)).size,
-    encours_fcfa: duRemboursable - rembourse,
-    defaillants: financements.filter((f) => f.statut === 'defaillant').length,
-    par_type,
-    flux_mensuel: fluxMensuel(),
-  };
+    const par_type: Repartition[] = types.map((t, i) => {
+      const montant = financements
+        .filter((f) => f.type_financement === t)
+        .reduce((s, f) => s + f.montant_fcfa, 0);
+      return {
+        libelle: libelles[t],
+        slug: t,
+        valeur: montant,
+        part: Math.round((montant / decaisse) * 100),
+        teinte: `var(--ax-chart-${i + 1})`,
+      };
+    });
+
+    return {
+      total_decaisse_fcfa: decaisse,
+      total_rembourse_fcfa: rembourse,
+      taux_remboursement: duRemboursable === 0 ? 0 : Math.round((rembourse / duRemboursable) * 100),
+      groupements_finances: new Set(financements.map((f) => f.groupement_id)).size,
+      encours_fcfa: duRemboursable - rembourse,
+      defaillants: financements.filter((f) => f.statut === 'defaillant').length,
+      par_type,
+      flux_mensuel: fluxMensuel(),
+    };
+    },
+  );
 }
 
 /** Agrégation mensuelle des décaissements sur les douze derniers mois. */
@@ -1054,8 +1248,14 @@ function fluxMensuel(): PointSerie[] {
 
 /** `GET /api/mouvements/` */
 export async function listerMouvements(limite?: number): Promise<MouvementFinancier[]> {
-  const liste = jeuDeDonnees().mouvements;
-  return limite ? liste.slice(0, limite) : liste;
+  return depuisApi(
+    '/mouvements/',
+    () => {
+      const liste = jeuDeDonnees().mouvements;
+      return limite ? liste.slice(0, limite) : liste;
+    },
+    { limite },
+  );
 }
 
 /* ========================================================================= *
@@ -1064,29 +1264,46 @@ export async function listerMouvements(limite?: number): Promise<MouvementFinanc
 
 /** `GET /api/commandes/` */
 export async function listerCommandes(limite?: number): Promise<Commande[]> {
-  const liste = jeuDeDonnees().commandes;
-  return limite ? liste.slice(0, limite) : liste;
+  return depuisApi(
+    '/commandes/',
+    () => {
+      const liste = jeuDeDonnees().commandes;
+      return limite ? liste.slice(0, limite) : liste;
+    },
+    { limite },
+  );
 }
 
 /** `GET /api/actualites/` */
 export async function listerActualites(limite?: number): Promise<Actualite[]> {
-  const liste = jeuDeDonnees().actualites;
-  return limite ? liste.slice(0, limite) : liste;
+  return depuisApi(
+    '/actualites/',
+    () => {
+      const liste = jeuDeDonnees().actualites;
+      return limite ? liste.slice(0, limite) : liste;
+    },
+    { limite },
+  );
 }
 
 /** `GET /api/actualites/{slug}/` */
 export async function obtenirActualite(slug: string): Promise<Actualite | null> {
-  return jeuDeDonnees().actualites.find((a) => a.slug === slug) ?? null;
+  return depuisApi(
+    `/actualites/${encodeURIComponent(slug)}/`,
+    () => jeuDeDonnees().actualites.find((a) => a.slug === slug) ?? null,
+  );
 }
 
 /** `GET /api/journal/` — piste d'audit, du plus récent au plus ancien. */
 export async function journalActivite(limite = 20): Promise<EvenementJournal[]> {
-  return jeuDeDonnees().journal.slice(0, limite);
+  return depuisApi('/journal/', () => jeuDeDonnees().journal.slice(0, limite), {
+    limite,
+  });
 }
 
 /** `GET /api/boutiques/` */
 export async function listerBoutiques(): Promise<Boutique[]> {
-  return jeuDeDonnees().boutiques;
+  return depuisApi('/boutiques/', () => jeuDeDonnees().boutiques);
 }
 
 /* ========================================================================= *
@@ -1108,6 +1325,17 @@ export interface ResultatRecherche {
  * pertinence — sans quoi la palette devra faire six appels au lieu d'un.
  */
 export async function rechercheGlobale(requete: string, limite = 8): Promise<ResultatRecherche[]> {
+  // Deux caractères au minimum, y compris quand l'API répond : la palette se
+  // déclenche à chaque frappe, et une requête d'une lettre ramènerait la moitié
+  // du catalogue pour rien.
+  if (sansAccent(requete.trim()).length < 2) return [];
+  return depuisApi('/recherche/', () => rechercheGlobaleLocale(requete, limite), {
+    q: requete.trim(),
+    limite,
+  });
+}
+
+function rechercheGlobaleLocale(requete: string, limite: number): ResultatRecherche[] {
   const q = sansAccent(requete.trim());
   if (q.length < 2) return [];
 
