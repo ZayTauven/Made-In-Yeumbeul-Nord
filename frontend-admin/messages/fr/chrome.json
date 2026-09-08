@@ -48,7 +48,9 @@
     "parametres": "Paramètres",
     "aide": "Aide",
     "journalAudit": "Journal d'audit",
-    "deconnexion": "Se déconnecter"
+    "deconnexion": "Se déconnecter",
+    "chargementCompte": "Chargement…",
+    "compteInconnu": "Compte"
   },
   "commandes": {
     "titre": "Commandes récentes",

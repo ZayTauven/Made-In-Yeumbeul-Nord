@@ -13,7 +13,15 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Dropdown } from '../ui/Dropdown';
 import { useCustomizer } from '../../context/CustomizerContext';
+import { useSession } from '../../context/SessionContext';
 import { formaterFcfa } from '../../domaine';
+
+/** Libellés des rôles, pour la ligne secondaire du bloc de compte. */
+const ROLES: Record<string, string> = {
+  administrateur: 'Administrateur',
+  agent: 'Agent',
+  lecture: 'Lecture seule',
+};
 
 /*
  * Contenu de démonstration de l'en-tête.
@@ -25,13 +33,9 @@ import { formaterFcfa } from '../../domaine';
  * `listerCommandes()` et `journalActivite()` de `domaine/source.ts` servent déjà
  * exactement ces formes.
  *
- * L'utilisatrice de démonstration porte un nom sénégalais et un avatar généré par
- * IA : aucun portrait réel du corpus n'incarne une personne fictive (CLAUDE.md §5).
+ * Le bloc de compte, lui, n'est plus une démonstration : il affiche le compte
+ * réellement connecté, lu par `useSession()`.
  */
-const UTILISATRICE = {
-  nom: 'Aminata Diop',
-  courriel: 'aminata.diop@yeumbeulnord.sn',
-};
 
 const NOTIFICATIONS_NON_LUES = 2;
 
@@ -105,7 +109,45 @@ export function Header({
 }) {
   const c = useCustomizer();
   const t = useTranslations('chrome');
+  const { profil, chargement } = useSession();
   const [full, setFull] = useState(false);
+
+  /*
+   * Compte connecté. Pendant le premier appel — quelques dizaines de
+   * millisecondes — on n'affiche ni nom ni initiales inventés : un libellé
+   * d'attente vaut mieux qu'une identité qui change sous les yeux.
+   */
+  const nomCompte = chargement
+    ? t('enTete.chargementCompte')
+    : (profil?.nom_complet || profil?.username || t('enTete.compteInconnu'));
+  const sousTitreCompte = profil
+    ? profil.email || [profil.fonction, ROLES[profil.role]].filter(Boolean).join(' · ')
+    : '';
+
+  /**
+   * Avatar à initiales, jamais un portrait.
+   *
+   * Le template posait ici une photographie de visage. Le corpus du projet ne
+   * contient que des personnes réelles : leur faire incarner un compte serait
+   * un détournement d'image (CLAUDE.md §5). Les initiales et la teinte
+   * viennent du compte lui-même.
+   */
+  function AvatarCompte({ taille = 'sm' }: { taille?: 'sm' | 'md' }) {
+    const teinte = profil?.avatar_teinte || 'var(--ax-accent)';
+    return (
+      <span
+        className={`ax-avatar ax-avatar--${taille}${taille === 'sm' ? ' ax-profile__avatar' : ''}`}
+        style={{
+          background: `color-mix(in oklab, ${teinte} 18%, transparent)`,
+          color: teinte,
+          flex: 'none',
+        }}
+        aria-hidden="true"
+      >
+        <span className="ax-avatar__initials">{profil?.initiales || '—'}</span>
+      </span>
+    );
+  }
 
   useEffect(() => {
     const onFs = () => setFull(!!document.fullscreenElement);
@@ -317,13 +359,16 @@ export function Header({
         panelClassName="ax-dropdown ax-profile__menu"
         trigger={({ open, triggerProps }) => (
           <button type="button" className="ax-profile__trigger" aria-label={t('enTete.menuCompte')} {...triggerProps} aria-expanded={open}>
-            <img className="ax-avatar ax-profile__avatar" src="/img/avatars/face-woman-1-96.webp" alt={UTILISATRICE.nom} width={32} height={32} />
+            <AvatarCompte />
           </button>
         )}
       >
         <div className="ax-profile__card">
-          <img className="ax-avatar" src="/img/avatars/face-woman-1-96.webp" alt="" width={40} height={40} loading="lazy" />
-          <span className="ax-profile__card-meta"><b>{UTILISATRICE.nom}</b><small>{UTILISATRICE.courriel}</small></span>
+          <AvatarCompte taille="md" />
+          <span className="ax-profile__card-meta">
+            <b>{nomCompte}</b>
+            <small>{sousTitreCompte}</small>
+          </span>
         </div>
         <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile">{t('enTete.voirProfil')}</Link>
         <Link className="ax-dropdown__item" role="menuitem" href="/pages/profile-settings">{t('enTete.parametres')}</Link>
