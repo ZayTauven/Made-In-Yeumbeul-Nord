@@ -65,7 +65,11 @@
     "introuvableTexte": "Ce groupement n'existe pas ou n'est plus publié.",
     "retourAnnuaire": "Revenir à l'annuaire",
     "voirLaProduction": "Voir la production",
-    "aPartirDe": "À partir de"
+    "aPartirDe": "À partir de",
+    "voirProductions": "Voir ses productions",
+    "nombreProductions": "{nombre, plural, one {# production au catalogue} other {# productions au catalogue}}",
+    "emblemeProvisoire": "Emblème provisoire",
+    "situeA": "Situé à"
   },
   "catalogue": {
     "titre": "Les productions",
