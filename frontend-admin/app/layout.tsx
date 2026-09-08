@@ -138,12 +138,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
    * titres, ce catalogue n'existe que pour l'arrivée du wolof.
    *
    * Ajouter un espace ici le jour où un composant client en a besoin.
+   *
+   * Symptôme quand on l'oublie : `MISSING_MESSAGE: Could not resolve …` et des
+   * clés brutes à l'écran, alors que le catalogue est bien présent dans
+   * `messages/` et bien déclaré dans `ESPACES` de `src/i18n/request.ts`. Les
+   * trois endroits doivent être à jour, pas deux.
    */
   const messages = await getMessages();
   const messagesClient = {
     commun: messages.commun,
     chrome: messages.chrome,
     ecrans: messages.ecrans,
+    // Les écrans d'authentification sont des composants clients : ils lisent
+    // leurs libellés ici, et non dans la configuration serveur.
+    auth: messages.auth,
   };
 
   return (

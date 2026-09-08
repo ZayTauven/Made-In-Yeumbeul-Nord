@@ -27,7 +27,7 @@ import { COOKIE_LOCALE, FUSEAU, LOCALE_PAR_DEFAUT, estLocaleValide, type Locale 
  * Un chemin entièrement calculé serait invisible à l'analyse et les traductions
  * manqueraient en production.
  */
-const ESPACES = ['commun', 'chrome', 'ecrans', 'navigation'] as const;
+const ESPACES = ['commun', 'chrome', 'ecrans', 'navigation', 'auth'] as const;
 
 async function chargerMessages(locale: Locale) {
   const entrees = await Promise.all(
@@ -35,10 +35,18 @@ async function chargerMessages(locale: Locale) {
       try {
         const module = await import(`../../messages/${locale}/${espace}.json`);
         return [espace, module.default] as const;
-      } catch {
+      } catch (cause) {
         // Un espace de noms pas encore traduit ne doit pas faire tomber la page :
         // `next-intl` affichera la clé brute, ce qui se repère immédiatement à
         // l'écran et se corrige, alors qu'une erreur 500 bloque toute la démo.
+        //
+        // L'erreur est tout de même annoncée. Un `catch` muet rend indétectable
+        // le cas où le fichier existe mais n'est pas chargé — on ne voit alors
+        // que des clés brutes à l'écran, sans savoir pourquoi.
+        console.warn(
+          `[i18n] Catalogue « ${espace} » non chargé pour la locale « ${locale} ».`,
+          cause,
+        );
         return [espace, {}] as const;
       }
     }),

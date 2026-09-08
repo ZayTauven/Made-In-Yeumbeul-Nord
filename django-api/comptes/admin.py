@@ -63,7 +63,7 @@ class UtilisateurAdmin(UserAdmin):
             uid = urlsafe_base64_encode(force_bytes(compte.pk))
             jeton = default_token_generator.make_token(compte)
             lien = (
-                f"{settings.FRONT_ADMIN_URL}/auth/reinitialiser"
+                f"{settings.FRONT_ADMIN_URL}/auth/create-password-cover"
                 f"?uid={uid}&jeton={jeton}"
             )
             if envoyer_mot_de_passe_oublie(compte, lien):

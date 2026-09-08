@@ -171,7 +171,7 @@ def envoyer_mot_de_passe_provisoire(utilisateur, auteur: str) -> bool:
     """
     contexte = _contexte_commun(utilisateur) | {
         "auteur": auteur,
-        "lien_connexion": f"{settings.FRONT_ADMIN_URL}/auth/sign-in-basic",
+        "lien_connexion": f"{settings.FRONT_ADMIN_URL}/auth/sign-in-cover",
     }
     texte = (
         f"Bonjour {contexte['prenom']},\n\n"
@@ -201,7 +201,7 @@ def envoyer_compte_cree(utilisateur) -> bool:
     contexte = _contexte_commun(utilisateur) | {
         "identifiant": utilisateur.get_username(),
         "role": utilisateur.get_role_display(),
-        "lien_connexion": f"{settings.FRONT_ADMIN_URL}/auth/sign-in-basic",
+        "lien_connexion": f"{settings.FRONT_ADMIN_URL}/auth/sign-in-cover",
     }
     texte = (
         f"Bonjour {contexte['prenom']},\n\n"
