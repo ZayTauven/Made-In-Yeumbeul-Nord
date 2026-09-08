@@ -189,38 +189,46 @@ def construire_kpi(
 
 
 def kpis_generaux() -> list[dict]:
-    """Les cartes du tableau de bord principal."""
+    """Les quatre cartes d'en-tête du tableau de bord général.
+
+    Les clés, les libellés et l'ordre sont ceux qu'attend `kpisSuivi()` de
+    `frontend-admin/src/domaine/source.ts` : l'écran affiche ces quatre cartes,
+    dans cet ordre. En servir une cinquième, ou renommer une clé, décalerait la
+    grille.
+    """
     groupements = Groupement.objects.all()
-    autonomes = groupements.filter(
-        etape__in=[EtapeAccompagnement.EN_PRODUCTION, EtapeAccompagnement.AUTONOME]
-    )
+    membres = Membre.objects.all()
 
     serie_groupements = serie_par_date(groupements, "date_creation")
-    serie_membres = serie_par_date(Membre.objects.all(), "date_adhesion")
+    serie_membres = serie_par_date(membres, "date_adhesion")
     serie_decaisse = serie_par_date(
         Financement.objects.all(), "date_decaissement", agregat=Sum("montant_fcfa")
     )
-    serie_productions = serie_par_date(Production.objects.all(), "date_ajout")
-    serie_autonomes = serie_par_date(autonomes, "date_creation")
+
+    # Part de femmes à chaque date de coupe : le même prédicat que la valeur
+    # courante, appliqué au passé — sans quoi la carte contredirait sa série.
+    serie_part_femmes = []
+    for coupe in dates_de_coupe():
+        recensees = membres.filter(date_adhesion__lte=coupe)
+        effectif = recensees.count()
+        femmes = recensees.filter(genre=Genre.FEMME).count()
+        serie_part_femmes.append(round(femmes / effectif * 100) if effectif else 0)
 
     return [
         construire_kpi(
-            "groupements", "Groupements accompagnés", serie_groupements, "groupements",
-            formater_entier, cible=100,
+            "groupements", "Groupements accompagnés", serie_groupements,
+            "groupements", formater_entier, cible=100,
         ),
         construire_kpi(
-            "membres", "Membres recensés", serie_membres, "membres", formater_entier,
+            "membres", "Membres recensés", serie_membres, "membres",
+            formater_entier, cible=1800,
+        ),
+        construire_kpi(
+            "part_femmes", "Part de femmes", serie_part_femmes, "%",
+            formater_pourcentage, delta_en_points=True,
         ),
         construire_kpi(
             "decaissements", "Montant décaissé", serie_decaisse, "FCFA", formater_fcfa,
-        ),
-        construire_kpi(
-            "productions", "Productions au catalogue", serie_productions,
-            "productions", formater_entier,
-        ),
-        construire_kpi(
-            "autonomie", "Groupements en production ou autonomes", serie_autonomes,
-            "groupements", formater_entier,
         ),
     ]
 
@@ -320,6 +328,8 @@ def entonnoir() -> list[dict]:
     L'ordre est celui du référentiel, pas celui des effectifs : un entonnoir
     trié par volume ne raconte plus un parcours.
     """
+    from core.referentiels import PROGRESSION_ETAPE
+
     comptes = {
         ligne["etape"]: ligne["n"]
         for ligne in Groupement.objects.values("etape").annotate(n=Count("id"))
@@ -333,6 +343,10 @@ def entonnoir() -> list[dict]:
             "libelle": libelles[etape],
             "effectif": comptes.get(etape, 0),
             "part": round(comptes.get(etape, 0) / total * 100) if total else 0,
+            # Position de l'étape sur le parcours, 0–100. L'écran s'en sert pour
+            # placer les paliers de l'entonnoir : sans elle, il les répartirait
+            # à intervalles égaux, ce que le barème n'est pas.
+            "progression": PROGRESSION_ETAPE[etape],
         }
         for etape in ETAPES
     ]
@@ -449,6 +463,17 @@ def resume_plan_action() -> dict:
     for activite in activites:
         effectifs[activite.statut] = effectifs.get(activite.statut, 0) + 1
 
+    # Ordre d'affichage des segments, et **tous** les statuts, y compris à zéro :
+    # un anneau dont un segment disparaît quand il tombe à zéro change de
+    # couleurs sous les yeux d'une démonstration à l'autre.
+    ORDRE_STATUTS = [
+        StatutActivite.EN_COURS,
+        StatutActivite.TERMINEE,
+        StatutActivite.PLANIFIEE,
+        StatutActivite.EN_RETARD,
+        StatutActivite.SUSPENDUE,
+    ]
+
     charges = {}
     for activite in activites:
         charges[activite.responsable] = charges.get(activite.responsable, 0) + 1
@@ -460,8 +485,8 @@ def resume_plan_action() -> dict:
     return {
         "total": total,
         "par_statut": [
-            {"statut": statut, "effectif": effectif}
-            for statut, effectif in sorted(effectifs.items())
+            {"statut": statut, "effectif": effectifs.get(statut, 0)}
+            for statut in ORDRE_STATUTS
         ],
         "charge_par_responsable": [
             {"responsable": responsable, "activites": nombre}
@@ -496,19 +521,27 @@ def resume_financement() -> dict:
     )
 
     libelles_type = dict(TypeFinancement.choices)
-    par_type = []
-    for ligne in tous.values("type_financement").annotate(v=Sum("montant_fcfa")):
-        valeur = ligne["v"] or 0
-        par_type.append(
-            {
-                "libelle": libelles_type.get(
-                    ligne["type_financement"], ligne["type_financement"]
-                ),
-                "slug": ligne["type_financement"],
-                "valeur": valeur,
-                "part": round(valeur / total_decaisse * 100) if total_decaisse else 0,
-            }
-        )
+    montants = {
+        ligne["type_financement"]: ligne["v"] or 0
+        for ligne in tous.values("type_financement").annotate(v=Sum("montant_fcfa"))
+    }
+    # Les quatre types, toujours, dans l'ordre du référentiel et avec leur
+    # teinte : l'anneau de l'écran garde ainsi les mêmes couleurs aux mêmes
+    # postes, qu'un type soit doté ou non.
+    par_type = [
+        {
+            "libelle": libelles_type[type_financement],
+            "slug": type_financement,
+            "valeur": montants.get(type_financement, 0),
+            "part": (
+                round(montants.get(type_financement, 0) / total_decaisse * 100)
+                if total_decaisse
+                else 0
+            ),
+            "teinte": f"var(--ax-chart-{rang + 1})",
+        }
+        for rang, type_financement in enumerate(TypeFinancement.values)
+    ]
 
     return {
         "total_decaisse_fcfa": total_decaisse,

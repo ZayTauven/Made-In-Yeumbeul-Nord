@@ -159,7 +159,7 @@ class TestDemandeReinitialisation(SocleCourriel):
         reponse = self.demander("k.sene")
         self.assertEqual(reponse.status_code, 204)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("/auth/reinitialiser?uid=", mail.outbox[0].body)
+        self.assertIn("/auth/create-password-cover?uid=", mail.outbox[0].body)
 
     def test_par_courriel_et_par_telephone(self):
         self.demander("k.sene@yeumbeulnord.sn")

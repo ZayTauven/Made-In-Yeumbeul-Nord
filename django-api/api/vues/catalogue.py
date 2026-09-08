@@ -27,6 +27,29 @@ from core.models import Filiere, Groupement, Membre, Production, Quartier
 from .workflow import MixinWorkflowValidation
 
 
+class MixinSlugOuIdentifiant:
+    """Permet d'adresser une ressource par son slug **ou** par son identifiant.
+
+    Les ressources publiques s'adressent par slug — la vitrine expose ces URL.
+    Mais plusieurs fonctions du contrat front reçoivent un identifiant numérique
+    (`membresDuGroupement(groupementId)`), et changer leur signature reviendrait
+    à toucher les écrans, ce que la bascule doit précisément éviter.
+
+    Accepter les deux formes coûte une condition et évite un aller-retour
+    supplémentaire pour convertir un identifiant en slug.
+    """
+
+    def get_object(self):
+        valeur = self.kwargs.get(self.lookup_field)
+        if valeur is not None and str(valeur).isdigit():
+            from django.shortcuts import get_object_or_404
+
+            objet = get_object_or_404(self.filter_queryset(self.get_queryset()), pk=valeur)
+            self.check_object_permissions(self.request, objet)
+            return objet
+        return super().get_object()
+
+
 class MixinCompteurs:
     """Dépose les compteurs des référentiels dans le contexte du sérialiseur.
 
@@ -64,7 +87,9 @@ class FiliereViewSet(MixinCompteurs, viewsets.ReadOnlyModelViewSet):
     search_fields = ["nom", "description"]
 
 
-class GroupementViewSet(MixinCompteurs, MixinWorkflowValidation, viewsets.ModelViewSet):
+class GroupementViewSet(
+    MixinSlugOuIdentifiant, MixinCompteurs, MixinWorkflowValidation, viewsets.ModelViewSet
+):
     """Les groupements, leurs membres, leurs productions et leurs financements."""
 
     serializer_class = GroupementSerializer
@@ -134,7 +159,9 @@ class GroupementViewSet(MixinCompteurs, MixinWorkflowValidation, viewsets.ModelV
         return Response(PointCarteSerializer(points, many=True).data)
 
 
-class ProductionViewSet(MixinWorkflowValidation, viewsets.ModelViewSet):
+class ProductionViewSet(
+    MixinSlugOuIdentifiant, MixinWorkflowValidation, viewsets.ModelViewSet
+):
     """Le catalogue des productions."""
 
     serializer_class = ProductionSerializer

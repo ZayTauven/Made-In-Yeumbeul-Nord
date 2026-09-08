@@ -161,7 +161,7 @@ class StatutSession(models.TextChoices):
 class TypeFinancement(models.TextChoices):
     SUBVENTION = "subvention", "Subvention"
     CREDIT_ROTATIF = "credit_rotatif", "Crédit rotatif"
-    EQUIPEMENT = "equipement", "Équipement"
+    EQUIPEMENT = "equipement", "Dotation en équipement"
     FONDS_DE_ROULEMENT = "fonds_de_roulement", "Fonds de roulement"
 
 
