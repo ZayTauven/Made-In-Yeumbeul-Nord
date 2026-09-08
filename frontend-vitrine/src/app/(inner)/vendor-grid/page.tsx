@@ -28,6 +28,20 @@ import type { Groupement } from '@/domaine/types';
 /** Groupements par page. Quatre colonnes sur grand écran, six rangées. */
 const PAR_PAGE = 24;
 
+/**
+ * Apparence d'un bouton de filtre, sélectionné ou non.
+ *
+ * Les couleurs sont posées ici et non par une classe du template : `.rts-btn`
+ * impose `color: #fff`, et Ekomart n'offre aucune variante claire — un filtre
+ * inactif s'y afficherait en blanc sur blanc, donc invisible. C'est exactement
+ * ce qui est arrivé : les onze filières étaient bien dans la page, illisibles.
+ */
+function styleFiltre(actif: boolean) {
+  return actif
+    ? { background: 'var(--color-primary)', color: '#fff', border: '1px solid var(--color-primary)' }
+    : { background: '#fff', color: 'var(--color-heading-1)', border: '1px solid #E2E2E2' };
+}
+
 /** Rend les cinq étoiles de la note, pleines ou vides. */
 function Etoiles({ note }: { note: number }) {
   const pleines = Math.round(note);
@@ -67,7 +81,13 @@ async function CarteGroupement({ groupement }: { groupement: Groupement }) {
           className="logo-vendor d-flex align-items-center justify-content-center"
           style={{
             height: 88,
-            maxWidth: '100%',
+            // Largeur bornée autant que la hauteur : sans elle, un emblème
+            // très allongé s'étale sur toute la carte et n'occupe qu'un tiers
+            // de la hauteur, quand un emblème carré la remplit. Les deux bornes
+            // resserrent l'écart de présence entre des fichiers de formats très
+            // différents.
+            maxWidth: 168,
+            marginInline: 'auto',
             marginBottom: 20,
             overflow: 'hidden',
           }}
@@ -153,6 +173,7 @@ export default async function AnnuaireDesGroupements({
   searchParams: Promise<{ filiere?: string; page?: string }>;
 }) {
   const t = await getTranslations('vitrine.annuaire');
+  const tNav = await getTranslations('vitrine.navigation');
   const parametres = await searchParams;
 
   const page = Math.max(1, Number(parametres.page) || 1);
@@ -183,8 +204,11 @@ export default async function AnnuaireDesGroupements({
         <div className="container">
           <div className="row">
             <div className="col-lg-12">
+              {/* Le premier maillon mène à l'accueil, pas à la page courante :
+                  un fil d'Ariane qui répète deux fois le même intitulé
+                  n'indique aucun chemin. */}
               <div className="navigator-breadcrumb-wrapper">
-                <Link href="/">{t('titre')}</Link>
+                <Link href="/">{tNav('accueil')}</Link>
                 <i className="fa-regular fa-chevron-right" aria-hidden="true" />
                 <span className="current">{t('titre')}</span>
               </div>
@@ -226,7 +250,9 @@ export default async function AnnuaireDesGroupements({
               <nav aria-label={t('filtreFiliere')} className="d-flex flex-wrap gap-2">
                 <Link
                   href={lienVers({})}
-                  className={`rts-btn ${filiere ? 'btn-border' : 'btn-primary'} radious-sm`}
+                  className="rts-btn radious-sm"
+                  style={styleFiltre(!filiere)}
+                  aria-current={!filiere ? 'page' : undefined}
                 >
                   <div className="btn-text">{t('toutesFilieres')}</div>
                 </Link>
@@ -234,9 +260,9 @@ export default async function AnnuaireDesGroupements({
                   <Link
                     key={f.slug}
                     href={lienVers({ filiere: f.slug })}
-                    className={`rts-btn ${
-                      filiere === f.slug ? 'btn-primary' : 'btn-border'
-                    } radious-sm`}
+                    className="rts-btn radious-sm"
+                    style={styleFiltre(filiere === f.slug)}
+                    aria-current={filiere === f.slug ? 'page' : undefined}
                   >
                     <div className="btn-text">
                       {f.nom} ({f.nombre_groupements})
