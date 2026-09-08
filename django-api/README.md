@@ -33,7 +33,7 @@ Puis :
 
 ```bash
 python manage.py migrate
-python manage.py peupler_technique --vider   # jeu technique, voir §7
+python manage.py importer_jeu_demo --vider   # jeu de démonstration, voir §7
 python manage.py createsuperuser             # pour /admin/ et les écritures
 python manage.py runserver 8000
 ```
@@ -256,14 +256,42 @@ Points spécifiquement couverts, parce qu'ils sont faciles à casser sans s'en a
 
 ## 7. Données
 
-`python manage.py peupler_technique --vider` installe un jeu **technique** : 24 groupements,
-~440 membres, 62 productions, 12 activités, 8 indicateurs. Les noms sont des gabarits et les
-montants tirés au sort — il sert à brancher les fronts sur une API qui répond.
+Deux jeux, deux usages.
 
-Le jeu montré au Maire est un autre sujet : toponymie réelle de Yeumbeul Nord, anthroponymie
-sénégalaise, filières plausibles, montants cohérents, chronologie tenable. Il relève de l'agent
-`yn-data-demo`, avec pour référence le générateur à graine fixe
-`frontend-admin/src/domaine/generateur.ts` (voir document 15 §12).
+```bash
+python manage.py importer_jeu_demo --vider   # le jeu de démonstration
+python manage.py peupler_technique --vider   # des gabarits, pour du test rapide
+```
+
+**Le jeu de démonstration** est celui qu'on montre : 100 groupements, 1 785 membres,
+301 productions, 20 indicateurs du cadre logique, 18 activités, 12 formations, 66 financements,
+180 commandes. Toponymie réelle de Yeumbeul Nord, anthroponymie sénégalaise, montants en FCFA,
+chronologie tenable.
+
+Il n'est pas écrit à la main : il est **exporté du générateur des fronts**, que
+`PLAN & PRODUCT/15-CONTRAT-API.md` §12 désigne comme la spécification des fixtures — c'est lui
+qui a servi à dessiner les écrans. Le réécrire en Python aurait produit deux jeux qui divergent,
+et la divergence se serait vue à l'écran.
+
+```bash
+python tools/exporter_jeu_demo.py            # régénère core/fixtures/jeu-demo.json
+```
+
+Le générateur est à graine fixe : deux exports donnent le même fichier. À relancer chaque fois
+que `frontend-admin/src/domaine/generateur.ts` change.
+
+Ce qui se déduit n'est pas importé — effectif d'un groupement, part de femmes, progression,
+statut d'activité, montant d'une commande. Ces valeurs figurent dans le JSON, les écrans les
+consomment, mais la base les recalcule : les stocker créerait deux vérités.
+
+Deux écarts assumés à l'import :
+
+- Les **présences** ne sont pas dans le jeu source, seul l'effectif présent de chaque session
+  l'est. Elles sont tirées au sort à graine fixe parmi les membres, avec recouvrement voulu
+  d'une session à l'autre : ce sont les mêmes femmes qui suivent plusieurs modules, et c'est ce
+  qui fait que 627 participations ne valent que 528 personnes formées.
+- Une vingtaine de **certifications** du jeu source portent deux fois le même couple
+  (formation, membre). La contrainte d'unicité les écarte — 572 sur 595.
 
 ---
 
@@ -273,11 +301,9 @@ sénégalaise, filières plausibles, montants cohérents, chronologie tenable. I
   des groupements et l'OTP par SMS sont en roadmap post-MVP1 (`07-PLAN-MVP1.md`).
 - **Écrans de connexion** : `app/(bare)/auth/sign-in-*` de Vireo sont encore les maquettes du
   template, à brancher sur `/api/auth/`.
-- **Nomenclature des indicateurs** : les cartes d'en-tête des formations sont adossées aux
-  indicateurs `I2.1.1`, `I2.1.2` et `I2.1.3` du cadre logique. Le jeu technique ne crée pas ces
-  codes-là, et `I2.1.2` n'y porte pas l'unité « % » : les cartes correspondantes s'affichent
-  donc à zéro ou sans signe de pourcentage. Ce n'est pas un défaut du code — les fixtures de
-  démonstration devront respecter cette nomenclature (`yn-data-demo`).
+- **Photos des groupements** : les chemins pointent vers `public/img/photos/` du front. Le jeu
+  de démonstration les porte, mais aucune vérification ne garantit que le fichier existe : une
+  clé absente du catalogue donnerait une image manquante à l'écran.
 - **Médias** : Django n'héberge aucune image. Les modèles portent la clé du média
   (`photo_cle`), les fichiers restent dans le `public/` de chaque front.
 - **Déploiement** : pas de Docker, pas de CI, pas de réglages de production. Relève de
