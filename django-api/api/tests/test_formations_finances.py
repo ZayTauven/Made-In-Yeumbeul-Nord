@@ -141,12 +141,33 @@ class TestFormations(SocleApi):
     def test_resume_des_formations(self):
         resume = self.json("/api/formations/resume/")
         self.assertLessEqual(
-            {"total_formations", "total_sessions", "total_participants",
-             "total_certifies", "taux_certification", "taux_presence_moyen"},
+            {"total_modules", "sessions_tenues", "sessions_a_venir", "participations",
+             "membres_formes", "membres_certifies", "certificats_delivres",
+             "taux_presence_moyen", "taux_certification_moyen", "heures_dispensees",
+             "cout_total_fcfa", "par_type", "activite_mensuelle", "formateurs"},
             set(resume),
         )
-        self.assertEqual(resume["total_formations"], 5)
-        self.assertEqual(resume["total_sessions"], 10)
+        self.assertEqual(resume["total_modules"], 5)
+        self.assertEqual(
+            resume["sessions_tenues"] + resume["sessions_a_venir"] <= 10, True
+        )
+
+    def test_participations_et_membres_formes_ne_se_confondent_pas(self):
+        """Le premier compte les présences, le second les personnes.
+
+        Annoncer douze cents participations comme « 1 200 membres formés » sur
+        une commune qui en compte mille sept cents serait un mensonge visible.
+        """
+        resume = self.json("/api/formations/resume/")
+        self.assertGreaterEqual(resume["participations"], resume["membres_formes"])
+
+    def test_activite_mensuelle_couvre_douze_mois(self):
+        resume = self.json("/api/formations/resume/")
+        self.assertEqual(len(resume["activite_mensuelle"]), 12)
+        self.assertLessEqual(
+            {"periode", "sessions", "participants"},
+            set(resume["activite_mensuelle"][0]),
+        )
 
 
 class TestFinancement(SocleApi):

@@ -140,10 +140,10 @@ class StatutJalon(models.TextChoices):
 
 
 class TypeModule(models.TextChoices):
-    TECHNIQUE = "technique", "Technique"
+    TECHNIQUE = "technique", "Technique métier"
     GESTION = "gestion", "Gestion"
     COMMERCIAL = "commercial", "Commercial"
-    ORGANISATIONNEL = "organisationnel", "Organisationnel"
+    ORGANISATIONNEL = "organisationnel", "Vie associative"
 
 
 class StatutSession(models.TextChoices):

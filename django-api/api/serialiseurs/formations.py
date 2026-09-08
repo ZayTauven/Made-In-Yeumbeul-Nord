@@ -10,6 +10,8 @@ from rest_framework import serializers
 
 from core.models import Certification, Formation, Participation, SessionFormation
 
+from .suivi import RepartitionSerializer
+
 
 class FormationSerializer(serializers.ModelSerializer):
     filiere_nom = serializers.CharField(
@@ -113,10 +115,41 @@ class MarquerPresenceSerializer(serializers.Serializer):
     present = serializers.BooleanField(default=True)
 
 
+class MoisFormationSerializer(serializers.Serializer):
+    periode = serializers.CharField()
+    sessions = serializers.IntegerField()
+    participants = serializers.IntegerField()
+
+
+class ChargeFormateurSerializer(serializers.Serializer):
+    nom = serializers.CharField()
+    sessions = serializers.IntegerField()
+    participants = serializers.IntegerField()
+
+
 class ResumeFormationsSerializer(serializers.Serializer):
-    total_formations = serializers.IntegerField()
-    total_sessions = serializers.IntegerField()
-    total_participants = serializers.IntegerField()
-    total_certifies = serializers.IntegerField()
-    taux_certification = serializers.IntegerField()
+    """Agrégats du tableau de bord des formations.
+
+    `participations` et `membres_formes` ne sont pas le même nombre et ne
+    doivent jamais être confondus : le premier compte les présences, le second
+    les personnes. Un cycle de six sessions suivies par deux cents membres
+    produit douze cents participations — l'annoncer comme « 1 200 membres
+    formés » sur une commune qui en compte mille sept cents serait un mensonge
+    visible à l'œil nu.
+    """
+
+    total_modules = serializers.IntegerField()
+    sessions_tenues = serializers.IntegerField()
+    sessions_a_venir = serializers.IntegerField()
+    participations = serializers.IntegerField()
+    membres_formes = serializers.IntegerField()
+    membres_certifies = serializers.IntegerField()
+    certificats_delivres = serializers.IntegerField()
     taux_presence_moyen = serializers.IntegerField()
+    taux_certification_moyen = serializers.IntegerField()
+    #: Sessions achevées seulement : une session à venir n'a rien dispensé.
+    heures_dispensees = serializers.IntegerField()
+    cout_total_fcfa = serializers.IntegerField()
+    par_type = RepartitionSerializer(many=True)
+    activite_mensuelle = MoisFormationSerializer(many=True)
+    formateurs = ChargeFormateurSerializer(many=True)

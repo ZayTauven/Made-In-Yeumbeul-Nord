@@ -234,7 +234,7 @@ un agent a perdu son mot de passe.
 ## 6. Tests
 
 ```bash
-python manage.py test comptes core api  # 167 tests
+python manage.py test comptes core api  # 171 tests
 python manage.py test api.tests.test_suivi -v 2
 ```
 
@@ -273,9 +273,11 @@ sénégalaise, filières plausibles, montants cohérents, chronologie tenable. I
   des groupements et l'OTP par SMS sont en roadmap post-MVP1 (`07-PLAN-MVP1.md`).
 - **Écrans de connexion** : `app/(bare)/auth/sign-in-*` de Vireo sont encore les maquettes du
   template, à brancher sur `/api/auth/`.
-- **Bascule des fronts** : ils lisent encore leur générateur local. La bascule se fait fonction
-  par fonction dans `domaine/source.ts`, en remplaçant un corps sans toucher aux signatures
-  (document 15 §12).
+- **Nomenclature des indicateurs** : les cartes d'en-tête des formations sont adossées aux
+  indicateurs `I2.1.1`, `I2.1.2` et `I2.1.3` du cadre logique. Le jeu technique ne crée pas ces
+  codes-là, et `I2.1.2` n'y porte pas l'unité « % » : les cartes correspondantes s'affichent
+  donc à zéro ou sans signe de pourcentage. Ce n'est pas un défaut du code — les fixtures de
+  démonstration devront respecter cette nomenclature (`yn-data-demo`).
 - **Médias** : Django n'héberge aucune image. Les modèles portent la clé du média
   (`photo_cle`), les fichiers restent dans le `public/` de chaque front.
 - **Déploiement** : pas de Docker, pas de CI, pas de réglages de production. Relève de

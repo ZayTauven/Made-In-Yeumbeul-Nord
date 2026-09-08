@@ -14,6 +14,41 @@ from .test_catalogue import SocleApi
 
 
 class TestKpis(SocleApi):
+    def test_cles_et_ordre_suivent_le_contrat_front(self):
+        """Les écrans lisent ces clés dans cet ordre : en changer décale la grille."""
+        for tableau, attendues in [
+            ("", ["groupements", "membres", "part_femmes", "decaissements"]),
+            ("?tableau=plan-action", ["terminees", "jalons", "echues", "cadre"]),
+            (
+                "?tableau=formations",
+                ["membres_formes", "sessions", "certification", "presence"],
+            ),
+        ]:
+            cles = [k["cle"] for k in self.json(f"/api/suivi/kpis/{tableau}")]
+            self.assertEqual(cles, attendues, f"tableau « {tableau or 'général'} »")
+
+    def test_les_cartes_adossees_au_cadre_logique_le_suivent(self):
+        """Une carte d'indicateur doit rendre exactement ce que rend sa fiche.
+
+        C'est la garantie qui justifie de les construire depuis le cadre logique
+        plutôt que de recalculer une série à part.
+        """
+        cadre = {i["code"]: i for i in self.json("/api/suivi/cadre-logique/")["indicateurs"]}
+        cartes = {k["cle"]: k for k in self.json("/api/suivi/kpis/?tableau=formations")}
+
+        for code, cle in [
+            ("I2.1.1", "membres_formes"),
+            ("I2.1.2", "certification"),
+            ("I2.1.3", "presence"),
+        ]:
+            if code not in cadre:
+                continue
+            indicateur, carte = cadre[code], cartes[cle]
+            self.assertEqual(carte["valeur"], indicateur["valeur_actuelle"], cle)
+            self.assertEqual(carte["cible"], indicateur["valeur_cible"], cle)
+            self.assertEqual(carte["tendance"], indicateur["tendance"], cle)
+            self.assertEqual(carte["sens"], indicateur["sens"], cle)
+
     def test_forme_des_cartes(self):
         kpis = self.json("/api/suivi/kpis/")
         self.assertGreater(len(kpis), 0)
@@ -50,8 +85,8 @@ class TestKpis(SocleApi):
     def test_kpi_a_faire_baisser_porte_son_sens(self):
         """« Activités en retard en baisse » doit se lire en vert, pas en rouge."""
         plan = self.json("/api/suivi/kpis/?tableau=plan-action")
-        retard = next(k for k in plan if k["cle"] == "activites_en_retard")
-        self.assertEqual(retard.get("sens"), "decroissant")
+        echues = next(k for k in plan if k["cle"] == "echues")
+        self.assertEqual(echues.get("sens"), "decroissant")
 
     def test_montants_formates_en_fcfa(self):
         kpis = self.json("/api/suivi/kpis/")

@@ -18,31 +18,21 @@
  *
  * ÉTAT DE LA BASCULE — 8 septembre 2026
  * -------------------------------------
- * 35 des 39 fonctions passent par `depuisApi()` : référentiels, groupements,
- * productions, cadre logique, activités, jalons, formations, sessions,
- * certifications, financements, mouvements, commandes, actualités, journal,
- * boutiques, recherche, entonnoir, répartitions, croisement, et les deux
- * résumés du plan d'action et du financement.
+ * **Les 39 fonctions passent par `depuisApi()`.** Aucune signature n'a changé,
+ * donc aucun écran n'a bougé.
  *
  * Chacune garde son calcul local **en repli** : si l'API ne répond pas dans les
  * quatre secondes, l'écran s'affiche quand même avec le jeu à graine fixe. La
- * démonstration du 31 octobre doit tenir sans connexion.
+ * démonstration du 31 octobre doit tenir sans connexion, API arrêtée ou poste
+ * hors ligne.
  *
- * Quatre fonctions restent délibérément locales, faute d'une forme équivalente
- * côté API :
- *
- *   · `kpisSuivi`, `kpisPlanAction`, `kpisFormations` — les cartes d'en-tête
- *     sont ici construites **à partir des indicateurs du cadre logique**
- *     (`carteIndicateur('I2.1.1', …)`), ce qui garantit qu'une carte ne
- *     contredit pas la fiche d'indicateur correspondante. L'API, elle, calcule
- *     des séries indépendantes : les clés et les valeurs divergeraient.
- *   · `resumeFormations` — l'écran attend huit agrégats de plus que ce que
- *     `/api/formations/resume/` rend aujourd'hui (heures dispensées, coût
- *     total, activité mensuelle, formateurs).
- *
- * Les aligner suppose de décider **où** vit le calcul, pas seulement de le
- * recopier : c'est un arbitrage à porter avec le backend, pas une correction
- * mécanique.
+ * Les cartes d'en-tête méritent une mention. Trois d'entre elles — membres
+ * formés, taux de certification, taux de présence — sont des **indicateurs du
+ * cadre logique**, et non des séries recalculées. Le serveur les construit de
+ * la même façon que ce fichier le faisait (`carte_indicateur()` dans
+ * `api/agregations.py`) : c'est ce qui garantit qu'une carte ne contredit
+ * jamais la fiche d'indicateur correspondante. Recalculer la valeur à part
+ * aurait fini par diverger d'un relevé.
  */
 
 import {
@@ -759,6 +749,12 @@ const PROFONDEUR_SERIE = 8;
  * écran.
  */
 export async function kpisPlanAction(): Promise<Kpi[]> {
+  return depuisApi('/suivi/kpis/', () => kpisPlanActionLocal(), {
+    tableau: 'plan-action',
+  });
+}
+
+function kpisPlanActionLocal(): Kpi[] {
   const { activites, jalons, indicateurs } = jeuDeDonnees();
 
   const bornes = Array.from({ length: PROFONDEUR_SERIE }, (_, i) => {
@@ -992,6 +988,10 @@ const LIBELLE_TYPE_MODULE: Record<Formation['type_module'], string> = {
  * compte mille sept cents serait un mensonge visible à l'œil nu.
  */
 export async function resumeFormations(): Promise<ResumeFormations> {
+  return depuisApi('/formations/resume/', () => resumeFormationsLocal());
+}
+
+function resumeFormationsLocal(): ResumeFormations {
   const { formations, sessions, certifications, statistiquesFormation } = jeuDeDonnees();
 
   const tenues = sessions.filter((x) => x.statut === 'terminee');
@@ -1082,6 +1082,12 @@ function activiteMensuelle(tenues: SessionFormation[]): MoisFormation[] {
  * de ses collectes en sparkline. C'est le contraire d'un chiffre décoratif.
  */
 export async function kpisFormations(): Promise<Kpi[]> {
+  return depuisApi('/suivi/kpis/', () => kpisFormationsLocal(), {
+    tableau: 'formations',
+  });
+}
+
+function kpisFormationsLocal(): Kpi[] {
   const { indicateurs, sessions } = jeuDeDonnees();
   const parCode = new Map(indicateurs.map((i) => [i.code, i]));
 

@@ -35,6 +35,7 @@ from core.models import (
     Formation,
     Groupement,
     Indicateur,
+    Jalon,
     Membre,
     Participation,
     Production,
@@ -46,10 +47,14 @@ from core.referentiels import (
     TYPES_REMBOURSABLES,
     EtapeAccompagnement,
     Genre,
+    SensIndicateur,
     StatutActivite,
     StatutFinancement,
+    StatutSession,
     Tendance,
     TypeFinancement,
+    TypeModule,
+    taux_atteinte,
 )
 
 #: Nombre de points des sparklines. Huit tient dans la largeur d'une carte KPI
@@ -184,6 +189,86 @@ def construire_kpi(
 
 
 # --------------------------------------------------------------------------- #
+# Cartes adossées au cadre logique
+# --------------------------------------------------------------------------- #
+
+
+def carte_indicateur(code: str, cle: str, libelle: str) -> dict:
+    """Construit une carte KPI **à partir d'un indicateur du cadre logique**.
+
+    C'est ce qui garantit qu'une carte d'en-tête ne contredit jamais la fiche
+    d'indicateur correspondante : les deux lisent la même valeur, la même
+    cible et le même historique de collectes. Une série recalculée à part
+    finirait par diverger d'un relevé.
+
+    Transposition de `carteIndicateur()` de `domaine/source.ts`.
+    """
+    indicateur = (
+        Indicateur.objects.filter(code=code).prefetch_related("releves").first()
+    )
+    if indicateur is None:
+        return {
+            "cle": cle,
+            "libelle": libelle,
+            "valeur": 0,
+            "valeur_affichee": "0",
+            "unite": "",
+            "delta": 0,
+            "tendance": Tendance.STABLE,
+            "etincelle": [0],
+        }
+
+    serie = [releve.valeur for releve in indicateur.releves.all()] or [0]
+    pourcentage = indicateur.unite == "%"
+    valeur = indicateur.valeur_actuelle
+
+    carte = {
+        "cle": cle,
+        "libelle": libelle,
+        "valeur": valeur,
+        "valeur_affichee": (
+            formater_pourcentage(valeur) if pourcentage else formater_entier(valeur)
+        ),
+        "unite": indicateur.unite,
+        "delta": delta_depuis_precedent(serie, en_points=pourcentage),
+        "tendance": indicateur.tendance,
+        "sens": indicateur.sens,
+        "etincelle": serie,
+        "cible": indicateur.valeur_cible,
+    }
+    return carte
+
+
+def serie_avancement_cadre(profondeur: int = POINTS_ETINCELLE) -> list[int]:
+    """Avancement global du cadre logique, relevé par relevé.
+
+    La moyenne des taux d'atteinte à un relevé donné est l'avancement du cadre à
+    cette date. Rien n'est inventé : la courbe reconstitue les collectes passées.
+    """
+    indicateurs = list(Indicateur.objects.prefetch_related("releves"))
+    if not indicateurs:
+        return [0] * profondeur
+
+    longueurs = [indicateur.releves.count() for indicateur in indicateurs]
+    longueur = min(longueurs) if longueurs else 0
+    if longueur == 0:
+        return [0] * profondeur
+
+    serie = []
+    for rang in range(max(0, longueur - profondeur), longueur):
+        taux = [
+            taux_atteinte(
+                list(indicateur.releves.all())[rang].valeur,
+                indicateur.valeur_cible,
+                indicateur.sens,
+            )
+            for indicateur in indicateurs
+        ]
+        serie.append(round(sum(taux) / len(taux)))
+    return serie
+
+
+# --------------------------------------------------------------------------- #
 # Indicateurs d'en-tête
 # --------------------------------------------------------------------------- #
 
@@ -236,84 +321,118 @@ def kpis_generaux() -> list[dict]:
 def kpis_plan_action() -> list[dict]:
     """Les quatre cartes du tableau de bord de suivi.
 
-    La série applique à chaque date passée le **même prédicat** que la valeur
-    courante : une activité est comptée « en retard » à une date donnée selon son
-    statut à cette date-là, pas selon son statut d'aujourd'hui.
+    Clés, libellés et ordre suivent `kpisPlanAction()` de `domaine/source.ts`.
+    Chaque série applique aux dates passées le prédicat exact qui définit la
+    valeur affichée — une activité « échue non achevée » l'est à une date donnée
+    selon son état à cette date, pas selon son état d'aujourd'hui.
     """
     activites = list(Activite.objects.all())
+    jalons = list(Jalon.objects.all())
     coupes = dates_de_coupe()
 
-    serie_total, serie_terminees, serie_retard, serie_avancement = [], [], [], []
-    for coupe in coupes:
-        ouvertes_a_la_date = [a for a in activites if a.date_debut <= coupe]
-        statuts = [a.statut_calcule(coupe) for a in ouvertes_a_la_date]
-        serie_total.append(len(ouvertes_a_la_date))
-        serie_terminees.append(statuts.count(StatutActivite.TERMINEE))
-        serie_retard.append(statuts.count(StatutActivite.EN_RETARD))
-        avancements = [a.avancement for a in ouvertes_a_la_date]
-        serie_avancement.append(
-            round(sum(avancements) / len(avancements)) if avancements else 0
-        )
+    serie_terminees = [
+        len([a for a in activites if a.date_fin < coupe and a.avancement >= 100])
+        for coupe in coupes
+    ]
+    serie_jalons = [
+        len([j for j in jalons if j.date_reelle is not None and j.date_reelle <= coupe])
+        for coupe in coupes
+    ]
+    serie_echues = [
+        len([a for a in activites if a.date_fin < coupe and a.avancement < 100])
+        for coupe in coupes
+    ]
+    serie_cadre = serie_avancement_cadre()
+
+    total_activites = len(activites)
+    total_jalons = len(jalons)
 
     return [
-        construire_kpi(
-            "activites_ouvertes", "Activités engagées", serie_total, "activités",
-            formater_entier,
-        ),
-        construire_kpi(
-            "activites_terminees", "Activités terminées", serie_terminees,
-            "activités", formater_entier,
-        ),
-        construire_kpi(
-            # Un indicateur qu'on cherche à faire baisser : sans `sens`, une
-            # diminution des retards s'afficherait en rouge.
-            "activites_en_retard", "Activités en retard", serie_retard, "activités",
-            formater_entier, sens="decroissant",
-        ),
-        construire_kpi(
-            "avancement_moyen", "Avancement moyen", serie_avancement, "%",
-            formater_pourcentage, cible=100, delta_en_points=True,
-        ),
+        {
+            "cle": "terminees",
+            "libelle": "Activités terminées",
+            "valeur": serie_terminees[-1],
+            # « 5 / 18 » plutôt que « 5 » : un décompte sans son total ne dit pas
+            # si le plan d'action avance ou piétine.
+            "valeur_affichee": f"{serie_terminees[-1]} / {total_activites}",
+            "unite": "activités",
+            "delta": delta_depuis_precedent(serie_terminees),
+            "tendance": tendance_du_delta(delta_depuis_precedent(serie_terminees)),
+            "etincelle": serie_terminees,
+            "cible": total_activites,
+        },
+        {
+            "cle": "jalons",
+            "libelle": "Jalons atteints",
+            "valeur": serie_jalons[-1],
+            "valeur_affichee": f"{serie_jalons[-1]} / {total_jalons}",
+            "unite": "jalons",
+            "delta": delta_depuis_precedent(serie_jalons),
+            "tendance": tendance_du_delta(delta_depuis_precedent(serie_jalons)),
+            "etincelle": serie_jalons,
+            "cible": total_jalons,
+        },
+        {
+            "cle": "echues",
+            "libelle": "Activités échues non achevées",
+            "valeur": serie_echues[-1],
+            "valeur_affichee": formater_entier(serie_echues[-1]),
+            "unite": "activités",
+            "delta": delta_depuis_precedent(serie_echues),
+            "tendance": tendance_du_delta(delta_depuis_precedent(serie_echues)),
+            # Un retard qui recule est une bonne nouvelle : sans ce sens, la
+            # pastille s'afficherait en rouge.
+            "sens": SensIndicateur.DECROISSANT,
+            "etincelle": serie_echues,
+        },
+        {
+            "cle": "cadre",
+            "libelle": "Avancement du cadre logique",
+            "valeur": serie_cadre[-1],
+            "valeur_affichee": formater_pourcentage(serie_cadre[-1]),
+            "unite": "%",
+            # En points, jamais en pourcentage relatif : « +12 % » sur une
+            # valeur déjà exprimée en pourcentage ne peut que se lire de travers.
+            "delta": delta_depuis_precedent(serie_cadre, en_points=True),
+            "tendance": tendance_du_delta(
+                delta_depuis_precedent(serie_cadre, en_points=True)
+            ),
+            "etincelle": serie_cadre,
+            "cible": 100,
+        },
     ]
 
 
-def kpis_formations() -> list[dict]:
-    """Les cartes de l'écran formations."""
-    serie_sessions = serie_par_date(SessionFormation.objects.all(), "date_debut")
-    serie_certifications = serie_par_date(
-        Certification.objects.all(), "date_certification"
-    )
-    serie_presences = serie_par_date(
-        Participation.objects.filter(present=True), "session__date_debut"
-    )
 
-    coupes = dates_de_coupe()
-    serie_taux = []
-    for coupe in coupes:
-        presents = Participation.objects.filter(
-            present=True, session__date_debut__lte=coupe
-        ).count()
-        certifies = Certification.objects.filter(
-            date_certification__lte=coupe
-        ).count()
-        serie_taux.append(round(certifies / presents * 100) if presents else 0)
+def kpis_formations() -> list[dict]:
+    """Les quatre cartes de l'écran formations.
+
+    Trois d'entre elles sont des indicateurs du cadre logique : la carte affiche
+    donc exactement la valeur que la coordination rapporte au bailleur. La
+    quatrième, les sessions tenues, n'en est pas un et se reconstitue ici.
+    """
+    sessions = list(SessionFormation.objects.prefetch_related("participations"))
+    tenues = [s for s in sessions if s.statut == StatutSession.TERMINEE]
+
+    serie_sessions = [
+        len([s for s in tenues if s.date_fin <= coupe]) for coupe in dates_de_coupe()
+    ]
 
     return [
-        construire_kpi(
-            "sessions", "Sessions tenues", serie_sessions, "sessions", formater_entier,
-        ),
-        construire_kpi(
-            "participants", "Présences enregistrées", serie_presences, "présences",
-            formater_entier,
-        ),
-        construire_kpi(
-            "certifications", "Certificats délivrés", serie_certifications,
-            "certificats", formater_entier,
-        ),
-        construire_kpi(
-            "taux_certification", "Taux de certification", serie_taux, "%",
-            formater_pourcentage, cible=80, delta_en_points=True,
-        ),
+        carte_indicateur("I2.1.1", "membres_formes", "Membres formés"),
+        {
+            "cle": "sessions",
+            "libelle": "Sessions tenues",
+            "valeur": len(tenues),
+            "valeur_affichee": formater_entier(len(tenues)),
+            "unite": "sessions",
+            "delta": delta_depuis_precedent(serie_sessions),
+            "tendance": tendance_du_delta(delta_depuis_precedent(serie_sessions)),
+            "etincelle": serie_sessions,
+            "cible": len(sessions),
+        },
+        carte_indicateur("I2.1.2", "certification", "Taux de certification"),
+        carte_indicateur("I2.1.3", "presence", "Taux de présence aux sessions"),
     ]
 
 
@@ -592,27 +711,130 @@ def flux_mensuel(points: int = POINTS_ETINCELLE) -> list[dict]:
 
 
 def resume_formations() -> dict:
-    presences = Participation.objects.filter(present=True).count()
-    certifies = Certification.objects.count()
-    sessions = SessionFormation.objects.all()
+    """Tout ce que le tableau de bord des formations affiche d'agrégé.
 
-    taux_presence = [
-        session.taux_presence
-        for session in sessions.prefetch_related("participations")
+    `participations` et `membres_formes` ne sont pas le même nombre et ne
+    doivent jamais être confondus : le premier compte les présences, le second
+    les personnes. Un cycle de six sessions suivies par deux cents membres
+    produit douze cents participations — l'annoncer comme « 1 200 membres
+    formés » sur une commune qui en compte mille sept cents serait un mensonge
+    visible à l'œil nu.
+    """
+    formations = list(Formation.objects.all())
+    sessions = list(
+        SessionFormation.objects.select_related("formation").prefetch_related(
+            "participations"
+        )
+    )
+    tenues = [s for s in sessions if s.statut == StatutSession.TERMINEE]
+    a_venir = [s for s in sessions if s.statut == StatutSession.PLANIFIEE]
+
+    participations = sum(s.effectif_present for s in tenues)
+    heures = sum(s.formation.duree_heures for s in tenues)
+    cout = sum(s.effectif_present * s.formation.cout_par_participant_fcfa for s in tenues)
+
+    identifiants_tenues = [s.pk for s in tenues]
+    membres_formes = (
+        Participation.objects.filter(present=True, session_id__in=identifiants_tenues)
+        .values("membre")
+        .distinct()
+        .count()
+    )
+    membres_certifies = Certification.objects.values("membre").distinct().count()
+
+    taux_presence = [s.taux_presence for s in tenues]
+    taux_certification = []
+    for formation in agregats_formations(Formation.objects.all()):
+        presents = formation.nombre_participants or 0
+        certifies = formation.nombre_certifies or 0
+        taux_certification.append(
+            round(certifies / presents * 100) if presents else 0
+        )
+
+    # Participants par type de module, les types non représentés écartés :
+    # l'anneau n'a pas de segment à zéro à montrer.
+    participants_par_type = {}
+    for session in tenues:
+        type_module = session.formation.type_module
+        participants_par_type[type_module] = (
+            participants_par_type.get(type_module, 0) + session.effectif_present
+        )
+    libelles_type = dict(TypeModule.choices)
+    par_type = [
+        {
+            "libelle": libelles_type[type_module],
+            "slug": type_module,
+            "valeur": participants_par_type.get(type_module, 0),
+            "part": (
+                round(participants_par_type.get(type_module, 0) / participations * 100)
+                if participations
+                else 0
+            ),
+            "teinte": f"var(--ax-chart-{rang + 1})",
+        }
+        for rang, type_module in enumerate(TypeModule.values)
+        if participants_par_type.get(type_module, 0) > 0
     ]
 
+    charge_formateurs = {}
+    for session in tenues:
+        courant = charge_formateurs.setdefault(
+            session.formateur, {"sessions": 0, "participants": 0}
+        )
+        courant["sessions"] += 1
+        courant["participants"] += session.effectif_present
+
     return {
-        "total_formations": Formation.objects.count(),
-        "total_sessions": sessions.count(),
-        "total_participants": presences,
-        "total_certifies": certifies,
-        # Sur les participations réelles, jamais sur une estimation : l'écran
-        # affiche le taux et la liste des certifiés côte à côte.
-        "taux_certification": round(certifies / presences * 100) if presences else 0,
+        "total_modules": len(formations),
+        "sessions_tenues": len(tenues),
+        "sessions_a_venir": len(a_venir),
+        "participations": participations,
+        "membres_formes": membres_formes,
+        "membres_certifies": membres_certifies,
+        "certificats_delivres": Certification.objects.count(),
         "taux_presence_moyen": (
             round(sum(taux_presence) / len(taux_presence)) if taux_presence else 0
         ),
+        "taux_certification_moyen": (
+            round(sum(taux_certification) / len(taux_certification))
+            if taux_certification
+            else 0
+        ),
+        "heures_dispensees": heures,
+        "cout_total_fcfa": cout,
+        "par_type": par_type,
+        "activite_mensuelle": activite_mensuelle(tenues),
+        "formateurs": sorted(
+            ({"nom": nom, **valeurs} for nom, valeurs in charge_formateurs.items()),
+            key=lambda f: (-f["sessions"], -f["participants"]),
+        ),
     }
+
+
+def activite_mensuelle(tenues) -> list[dict]:
+    """Sessions achevées et présences, mois par mois, sur douze mois."""
+    mois_courts = [
+        "janv.", "févr.", "mars", "avr.", "mai", "juin",
+        "juil.", "août", "sept.", "oct.", "nov.", "déc.",
+    ]
+    aujourdhui = date.today()
+    resultat = []
+    for recul in range(11, -1, -1):
+        mois = aujourdhui.month - recul
+        annee = aujourdhui.year + (mois - 1) // 12
+        mois = (mois - 1) % 12 + 1
+        du_mois = [
+            s for s in tenues if s.date_fin.year == annee and s.date_fin.month == mois
+        ]
+        resultat.append(
+            {
+                "periode": mois_courts[mois - 1],
+                "sessions": len(du_mois),
+                "participants": sum(s.effectif_present for s in du_mois),
+            }
+        )
+    return resultat
+
 
 
 def agregats_formations(queryset):
