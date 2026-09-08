@@ -54,7 +54,18 @@
     "responsable": "Responsable",
     "contacter": "Contacter le groupement",
     "aucuneProduction": "Ce groupement n'a pas encore publié de production.",
-    "partFemmes": "{valeur} % de femmes"
+    "partFemmes": "{valeur} % de femmes",
+    "etape": "Étape d'accompagnement",
+    "apropos": "À propos du groupement",
+    "identite": "Le groupement",
+    "note": "{note} sur 5 · {nombre, plural, one {# appréciation} other {# appréciations}}",
+    "sansNote": "Pas encore d'appréciation",
+    "effectif": "{nombre, plural, one {# membre} other {# membres}}",
+    "introuvableTitre": "Groupement introuvable",
+    "introuvableTexte": "Ce groupement n'existe pas ou n'est plus publié.",
+    "retourAnnuaire": "Revenir à l'annuaire",
+    "voirLaProduction": "Voir la production",
+    "aPartirDe": "À partir de"
   },
   "catalogue": {
     "titre": "Les productions",
