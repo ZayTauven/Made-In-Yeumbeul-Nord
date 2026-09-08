@@ -22,6 +22,7 @@ import HeaderOne from '@/components/header/HeaderOne';
 import FooterOne from '@/components/footer/FooterOne';
 import ShortService from '@/components/service/ShortService';
 import { listerFilieres, listerGroupements } from '@/domaine/source';
+import { logoDuGroupement } from '@/data/logos-groupements';
 import type { Groupement } from '@/domaine/types';
 
 /** Groupements par page. Quatre colonnes sur grand écran, six rangées. */
@@ -48,21 +49,61 @@ async function CarteGroupement({ groupement }: { groupement: Groupement }) {
 
   return (
     <div className="col-xl-3 col-lg-4 col-md-6 col-sm-6 col-12">
-      <div className="single-vendor-area">
-        <div className="logo-vendor">
-          {/*
-            La photographie du groupement, pas un logo : aucun des cent
-            groupements n'en a. Le corpus local fournit une image d'activité,
-            servie depuis public/ — aucune image distante (CLAUDE.md §5).
-          */}
+      {/*
+        `height: 100%` sur la colonne et la carte : sans cela, une carte dont le
+        nom tient sur deux lignes devient plus haute que ses voisines et la
+        grille se disloque — c'est ce qui arrivait avec la photographie du
+        groupement en pleine largeur.
+      */}
+      <div className="single-vendor-area d-flex flex-column" style={{ height: '100%' }}>
+        {/*
+          Cadre d'emblème à **hauteur fixe**. C'est lui qui tient la grille : les
+          fichiers vont du SVG large et plat à la photographie haute, en passant
+          par des planches entières de logos. `contain` les inscrit sans les
+          déformer ni les rogner, et le cadre garde la même hauteur qu'ils
+          soient carrés ou panoramiques.
+        */}
+        <div
+          className="logo-vendor d-flex align-items-center justify-content-center"
+          style={{
+            height: 88,
+            maxWidth: '100%',
+            marginBottom: 20,
+            overflow: 'hidden',
+          }}
+        >
           <img
-            src={groupement.photo}
-            alt={`${groupement.nom} — ${groupement.filiere.nom}`}
+            src={logoDuGroupement(groupement.id)}
+            alt=""
             loading="lazy"
+            style={{
+              maxHeight: '100%',
+              maxWidth: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+            }}
           />
         </div>
 
-        <h3 className="title">{groupement.nom}</h3>
+        {/*
+          Le nom sur deux lignes au plus, coupé par des points de suspension
+          au-delà : « Coopérative des transformatrices de céréales de Diamalaye »
+          pousserait sinon le bouton hors de l'alignement de ses voisins.
+        */}
+        <h3
+          className="title"
+          title={groupement.nom}
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            minHeight: '2.6em',
+          }}
+        >
+          {groupement.nom}
+        </h3>
 
         <div className="stars-area">
           {groupement.nombre_appreciations > 0 ? (
@@ -90,9 +131,11 @@ async function CarteGroupement({ groupement }: { groupement: Groupement }) {
           </p>
         </div>
 
+        {/* `mt-auto` colle le bouton au bas de la carte : quelle que soit la
+            longueur du nom ou du quartier, tous les boutons s'alignent. */}
         <Link
           href={`/vendor-details?groupement=${groupement.slug}`}
-          className="rts-btn btn-primary radious-sm with-icon"
+          className="rts-btn btn-primary radious-sm with-icon mt-auto"
         >
           <div className="btn-text">{t('voirLaFiche')}</div>
           <div className="arrow-icon">
