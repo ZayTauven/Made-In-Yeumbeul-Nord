@@ -47,6 +47,18 @@ router.register(r"journal", vues.JournalViewSet, basename="journal")
 
 
 urlpatterns = [
+    # --- Authentification -------------------------------------------------- #
+    # Le front récupère d'abord le jeton CSRF, puis ouvre sa session. Tous ses
+    # appels portent `credentials: "include"`, sans quoi le cookie ne part pas.
+    path("auth/csrf/", vues.JetonCsrfView.as_view(), name="auth-csrf"),
+    path("auth/connexion/", vues.ConnexionView.as_view(), name="auth-connexion"),
+    path("auth/deconnexion/", vues.DeconnexionView.as_view(), name="auth-deconnexion"),
+    path("auth/moi/", vues.ProfilView.as_view(), name="auth-moi"),
+    path(
+        "auth/mot-de-passe/",
+        vues.ChangementMotDePasseView.as_view(),
+        name="auth-mot-de-passe",
+    ),
     # --- Agrégations, avant le routeur (voir l'entête) --------------------- #
     path("suivi/kpis/", vues.KpisView.as_view(), name="suivi-kpis"),
     path(

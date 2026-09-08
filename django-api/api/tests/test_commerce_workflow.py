@@ -1,11 +1,16 @@
 """Tests du commerce, des contenus, du workflow de validation et de la doc."""
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 
 from core.models import EvenementJournal, Groupement
-from core.referentiels import EtatValidation
+from core.referentiels import EtatValidation, RoleUtilisateur
 
 from .test_catalogue import SocleApi
+
+Utilisateur = get_user_model()
+
+#: Douze caractères au moins : c'est ce qu'exige le validateur de longueur.
+MOT_DE_PASSE = "motdepasse-de-recette"
 
 
 class TestCommerceEtContenus(SocleApi):
@@ -121,13 +126,43 @@ class TestWorkflowValidation(SocleApi):
         ).first()
         self.assertIsNotNone(self.brouillon)
 
-    def _connecter(self):
-        User.objects.create_user("agent", "agent@yeumbeulnord.sn", "motdepasse")
-        self.client.login(username="agent", password="motdepasse")
+    def _connecter(self, role=RoleUtilisateur.ADMINISTRATEUR, identifiant="agente"):
+        """Ouvre une session pour un compte du rôle demandé."""
+        Utilisateur.objects.create_user(
+            username=identifiant,
+            email=f"{identifiant}@yeumbeulnord.sn",
+            password=MOT_DE_PASSE,
+            first_name="Khady",
+            last_name="Sène",
+            role=role,
+        )
+        self.assertTrue(
+            self.client.login(username=identifiant, password=MOT_DE_PASSE)
+        )
 
     def test_ecriture_refusee_a_l_anonyme(self):
         reponse = self.client.post(f"/api/groupements/{self.brouillon.slug}/soumettre/")
         self.assertIn(reponse.status_code, (401, 403))
+
+    def test_agent_soumet_mais_ne_valide_pas(self):
+        """Séparer la soumission de la validation est ce qui donne du sens au
+        circuit : un dispositif où le même compte fait les deux n'atteste rien."""
+        self._connecter(role=RoleUtilisateur.AGENT)
+
+        soumission = self.client.post(
+            f"/api/groupements/{self.brouillon.slug}/soumettre/"
+        )
+        self.assertEqual(soumission.status_code, 200, soumission.content[:300])
+
+        validation = self.client.post(f"/api/groupements/{self.brouillon.slug}/valider/")
+        self.assertEqual(validation.status_code, 403)
+        self.brouillon.refresh_from_db()
+        self.assertEqual(self.brouillon.etat_validation, EtatValidation.SOUMIS)
+
+    def test_compte_en_lecture_seule_n_ecrit_rien(self):
+        self._connecter(role=RoleUtilisateur.LECTURE, identifiant="observatrice")
+        reponse = self.client.post(f"/api/groupements/{self.brouillon.slug}/soumettre/")
+        self.assertEqual(reponse.status_code, 403)
 
     def test_chaine_nominale(self):
         self._connecter()

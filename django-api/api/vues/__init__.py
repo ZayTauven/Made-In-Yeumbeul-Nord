@@ -6,6 +6,13 @@ Les vues restent minces : les règles de calcul du suivi-évaluation vivent dans
 `api.agregations`, où elles se testent sans passer par HTTP.
 """
 
+from .authentification import (
+    ChangementMotDePasseView,
+    ConnexionView,
+    DeconnexionView,
+    JetonCsrfView,
+    ProfilView,
+)
 from .catalogue import (
     FiliereViewSet,
     GroupementViewSet,
@@ -35,6 +42,12 @@ from .suivi import (
 )
 
 __all__ = [
+    # Authentification
+    "JetonCsrfView",
+    "ConnexionView",
+    "DeconnexionView",
+    "ProfilView",
+    "ChangementMotDePasseView",
     # Catalogue
     "QuartierViewSet",
     "FiliereViewSet",

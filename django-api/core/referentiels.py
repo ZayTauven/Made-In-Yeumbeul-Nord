@@ -76,6 +76,20 @@ class Genre(models.TextChoices):
     HOMME = "homme", "Homme"
 
 
+class RoleUtilisateur(models.TextChoices):
+    """Rôles des comptes de la plateforme.
+
+    Ils épousent le workflow de validation : un agent saisit et soumet, un
+    administrateur valide ou rejette. Séparer les deux est ce qui donne du sens
+    à la validation — un circuit où le même compte soumet et valide n'atteste
+    de rien.
+    """
+
+    ADMINISTRATEUR = "administrateur", "Administrateur"
+    AGENT = "agent", "Agent"
+    LECTURE = "lecture", "Lecture seule"
+
+
 class Tendance(models.TextChoices):
     HAUSSE = "hausse", "Hausse"
     BAISSE = "baisse", "Baisse"

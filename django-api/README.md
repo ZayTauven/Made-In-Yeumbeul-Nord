@@ -33,7 +33,7 @@ Puis :
 
 ```bash
 python manage.py migrate
-python manage.py peupler_technique --vider   # jeu technique, voir §5
+python manage.py peupler_technique --vider   # jeu technique, voir §6
 python manage.py createsuperuser             # pour /admin/ et les écritures
 python manage.py runserver 8000
 ```
@@ -75,9 +75,88 @@ Deux principes traversent le code :
 
 ---
 
-## 3. Organisation
+## 3. Authentification
+
+**Session Django, décision arrêtée contre JWT.** Rien à stocker dans le navigateur, et une
+révocation prend effet immédiatement — supprimer la session suffit, là où un jeton signé reste
+valable jusqu'à son échéance sauf à tenir une liste noire.
+
+Enchaînement côté front. Tous les appels portent `credentials: "include"` ; sans cela le
+navigateur n'envoie pas le cookie et l'API refuse toute écriture.
+
+```js
+// 1. Jeton CSRF. Le cookie est HttpOnly, donc illisible au JavaScript :
+//    le jeton arrive dans le corps de la réponse.
+const { jeton_csrf } = await fetch(`${API}/auth/csrf/`, {
+  credentials: "include",
+}).then((r) => r.json());
+
+// 2. Connexion. `identifiant` accepte l'identifiant, le courriel ou le téléphone.
+const profil = await fetch(`${API}/auth/connexion/`, {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json", "X-CSRFToken": jeton_csrf },
+  body: JSON.stringify({ identifiant, mot_de_passe }),
+}).then((r) => r.json());
+```
+
+| Route | Méthode | Effet |
+|---|---|---|
+| `/api/auth/csrf/` | GET | Rend le jeton CSRF et dépose son cookie |
+| `/api/auth/connexion/` | POST | Ouvre la session, renvoie le profil |
+| `/api/auth/moi/` | GET | Profil du compte connecté |
+| `/api/auth/deconnexion/` | POST | Ferme la session |
+| `/api/auth/mot-de-passe/` | POST | Change le mot de passe |
+
+**Le jeton CSRF tourne à la connexion** : le relire après s'être connecté, sinon la première
+écriture repartira avec l'ancien.
+
+### Trois rôles, calqués sur le workflow de validation
+
+| Rôle | Lecture | Écriture et soumission | Validation et rejet |
+|---|:--:|:--:|:--:|
+| `administrateur` | ✅ | ✅ | ✅ |
+| `agent` | ✅ | ✅ | ❌ |
+| `lecture` | ✅ | ❌ | ❌ |
+
+Séparer la soumission de la validation est ce qui donne du sens au circuit : un dispositif où
+le même compte soumet et valide n'atteste de rien. Un superutilisateur est administrateur
+d'office, sans quoi le compte issu de `createsuperuser` ne pourrait rien valider.
+
+La **lecture reste ouverte aux visiteurs anonymes** : la vitrine est publique par nature. Les
+commandes aussi — on ne demande pas de compte pour acheter un savon.
+
+### Réglages de sécurité
+
+- Modèle utilisateur personnalisé dans l'app `comptes`, **dès l'origine** : substituer
+  `AUTH_USER_MODEL` après coup est l'une des migrations les plus coûteuses de Django. L'app est
+  séparée de `core` parce que Django résout `AUTH_USER_MODEL` par une dépendance vers la
+  *première* migration de l'app concernée.
+- Connexion par identifiant, courriel **ou téléphone** : un agent municipal retient plus sûrement
+  son numéro que l'identifiant qu'on lui a attribué.
+- Argon2 pour le hachage, mots de passe de douze caractères au minimum.
+- Dix tentatives de connexion par minute. Le message d'échec ne distingue pas l'identifiant
+  inconnu du mot de passe erroné : les séparer renseignerait sur les comptes existants.
+- Cookies de session et CSRF `HttpOnly`, `SameSite=Lax`, et `Secure` dès que `DEBUG=False`.
+- Connexions et transitions de validation écrivent au journal d'audit.
+
+Créer un compte :
+
+```bash
+python manage.py createsuperuser          # administrateur
+# puis, dans /admin/, régler « rôle » pour les comptes suivants
+```
+
+---
+
+## 4. Organisation
 
 ```
+comptes/
+  models.py             Utilisateur (AbstractUser + rôle, téléphone, fonction)
+  authentification.py   Backend acceptant identifiant, courriel ou téléphone
+  admin.py              Administration des comptes
+
 core/
   referentiels.py       Choix, barèmes et fonctions de calcul partagés avec le front
   models/               Modèles éclatés par domaine
@@ -93,6 +172,7 @@ core/
   tests.py              Annotations, propriétés dérivées, contraintes
 
 api/
+  permissions.py        Les trois rôles, en classes de permission DRF
   serialiseurs/         Formes de sortie, champ pour champ identiques à domaine/types.ts
   vues/                 ViewSets et vues d'agrégation, volontairement minces
   agregations.py        Les règles de calcul du suivi-évaluation
@@ -108,10 +188,10 @@ contredit son propre tableau.
 
 ---
 
-## 4. Tests
+## 5. Tests
 
 ```bash
-python manage.py test core api          # 117 tests
+python manage.py test comptes core api  # 145 tests
 python manage.py test api.tests.test_suivi -v 2
 ```
 
@@ -131,7 +211,7 @@ Points spécifiquement couverts, parce qu'ils sont faciles à casser sans s'en a
 
 ---
 
-## 5. Données
+## 6. Données
 
 `python manage.py peupler_technique --vider` installe un jeu **technique** : 24 groupements,
 ~440 membres, 62 productions, 12 activités, 8 indicateurs. Les noms sont des gabarits et les
@@ -144,11 +224,15 @@ sénégalaise, filières plausibles, montants cohérents, chronologie tenable. I
 
 ---
 
-## 6. Ce qui n'est pas encore fait
+## 7. Ce qui n'est pas encore fait
 
-- **Authentification** : lecture ouverte, écriture réservée aux comptes authentifiés
-  (`IsAuthenticatedOrReadOnly`), avec la session Django. Ni JWT, ni comptes de groupement, ni
-  rôles fins. À poser quand les écrans de saisie arriveront.
+- **Comptes de groupement** : seuls les agents de la commune se connectent. L'auto-inscription
+  des groupements et l'OTP par SMS sont en roadmap post-MVP1 (`07-PLAN-MVP1.md`).
+- **Réinitialisation de mot de passe** : les écrans existent côté Vireo, la route non — elle
+  suppose un serveur SMTP que le projet n'a pas encore. Un administrateur réinitialise depuis
+  `/admin/` en attendant.
+- **Écrans de connexion** : `app/(bare)/auth/sign-in-*` de Vireo sont encore les maquettes du
+  template, à brancher sur `/api/auth/`.
 - **Bascule des fronts** : ils lisent encore leur générateur local. La bascule se fait fonction
   par fonction dans `domaine/source.ts`, en remplaçant un corps sans toucher aux signatures
   (document 15 §12).

@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.permissions import EstAdministrateur
 from core.models import EvenementJournal
 from core.referentiels import EtatValidation
 
@@ -58,8 +59,10 @@ class MixinWorkflowValidation:
         objet.motif_rejet = motif if arrivee == EtatValidation.REJETE else ""
         objet.save(update_fields=["etat_validation", "motif_rejet", "updated_at"])
 
+        acteur = request.user
         EvenementJournal.objects.create(
-            acteur=self._nom_acteur(request),
+            acteur=acteur.nom_complet or acteur.get_username(),
+            acteur_teinte=acteur.avatar_teinte,
             action=f"{nom.capitalize()} — {EtatValidation(arrivee).label.lower()}",
             cible=self.libelle_journal(objet),
             cible_lien=f"/{self.basename}s/{objet.slug}",
@@ -69,28 +72,27 @@ class MixinWorkflowValidation:
         serialiseur = self.get_serializer(objet)
         return Response(serialiseur.data)
 
-    @staticmethod
-    def _nom_acteur(request) -> str:
-        utilisateur = getattr(request, "user", None)
-        if utilisateur and utilisateur.is_authenticated:
-            return utilisateur.get_full_name() or utilisateur.get_username()
-        return "Agent de la commune"
-
     @extend_schema(request=None, description="Passe la fiche de brouillon à soumis.")
     @action(detail=True, methods=["post"])
     def soumettre(self, request, **kwargs):
         return self._transitionner(request, "soumettre")
 
-    @extend_schema(request=None, description="Valide une fiche soumise.")
-    @action(detail=True, methods=["post"])
+    @extend_schema(
+        request=None,
+        description="Valide une fiche soumise. Réservé aux administrateurs.",
+    )
+    @action(detail=True, methods=["post"], permission_classes=[EstAdministrateur])
     def valider(self, request, **kwargs):
         return self._transitionner(request, "valider")
 
     @extend_schema(
         request=None,
-        description="Rejette une fiche soumise. Le motif est obligatoire.",
+        description=(
+            "Rejette une fiche soumise. Le motif est obligatoire. "
+            "Réservé aux administrateurs."
+        ),
     )
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[EstAdministrateur])
     def rejeter(self, request, **kwargs):
         motif = (request.data.get("motif") or "").strip()
         if not motif:

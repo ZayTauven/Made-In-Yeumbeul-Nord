@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
     # Projet
+    "comptes",
     "core",
     "api",
 ]
@@ -124,14 +125,63 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # --------------------------------------------------------------------------- #
-# Validation des mots de passe
+# Comptes et authentification
 # --------------------------------------------------------------------------- #
+
+# Modèle utilisateur substitué dès l'origine : le remplacer une fois des comptes
+# réels créés est l'une des migrations les plus coûteuses de Django.
+AUTH_USER_MODEL = "comptes.Utilisateur"
+
+AUTHENTICATION_BACKENDS = [
+    # Accepte identifiant, courriel ou téléphone. Placé avant le backend
+    # standard, qui reste en second pour l'interface d'administration.
+    "comptes.authentification.IdentifiantSouple",
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        # Douze caractères plutôt que les huit par défaut : ces comptes ouvrent
+        # sur les données de suivi d'une collectivité.
+        "OPTIONS": {"min_length": 12},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# Argon2 en tête : c'est le hachage recommandé par Django, et il résiste
+# nettement mieux au calcul parallèle que PBKDF2. Les empreintes PBKDF2
+# existantes restent lisibles et sont réhachées à la connexion suivante.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+
+# Une journée de travail. Au-delà, l'agent se reconnecte — un poste de mairie
+# est souvent partagé.
+SESSION_COOKIE_AGE = 60 * 60 * 12
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+# En développement, les deux fronts et l'API tiennent sur `localhost` : même
+# site, donc « Lax » suffit et le cookie voyage sans HTTPS. En production, les
+# deux réglages ci-dessous passent à True derrière le proxy TLS.
+SESSION_COOKIE_SECURE = not DEBUG
+
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = not DEBUG
+# Le cookie reste inaccessible au JavaScript. Le front n'en a pas besoin :
+# `GET /api/auth/csrf/` lui rend le jeton dans le corps de la réponse, et Django
+# le compare de son côté au cookie. Un jeton CSRF lisible par un script injecté
+# n'offrirait plus de protection.
+CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
 ]
 
 
@@ -178,12 +228,27 @@ REST_FRAMEWORK = {
         # réponse sans passer par Swagger ; elle disparaît en production.
         *(["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
     ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        # Lecture ouverte, écriture réservée aux comptes authentifiés. La vitrine
-        # est publique par nature ; l'authentification fine des agents de la
-        # mairie viendra avec les écrans de saisie.
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        # Session seule : le choix a été arrêté contre JWT. Rien à stocker dans
+        # le navigateur, et une révocation prend effet immédiatement — supprimer
+        # la session suffit, là où un jeton signé reste valable jusqu'à son
+        # échéance sauf à tenir une liste noire.
+        "rest_framework.authentication.SessionAuthentication",
     ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        # Lecture ouverte — la vitrine est publique par nature —, écriture
+        # réservée aux comptes qui en ont le rôle.
+        "api.permissions.LectureLibreEcritureControlee",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        # Seule la connexion est limitée : c'est la porte que l'on force. Le
+        # reste de l'API est en lecture publique, une limite globale gênerait
+        # la vitrine sans rien protéger.
+        "connexion": "10/min",
+    },
 }
 
 SPECTACULAR_SETTINGS = {

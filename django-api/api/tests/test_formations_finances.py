@@ -65,10 +65,16 @@ class TestFormations(SocleApi):
 
     def _connecter_agent(self):
         """Le pointage des présences est un acte d'agent, pas de visiteur."""
-        from django.contrib.auth.models import User
+        from django.contrib.auth import get_user_model
 
-        User.objects.create_user("agente", "agente@yeumbeulnord.sn", "motdepasse")
-        self.client.login(username="agente", password="motdepasse")
+        get_user_model().objects.create_user(
+            username="agente",
+            email="agente@yeumbeulnord.sn",
+            password="motdepasse-de-recette",
+        )
+        self.assertTrue(
+            self.client.login(username="agente", password="motdepasse-de-recette")
+        )
 
     def test_pointage_refuse_a_l_anonyme(self):
         from core.models import Membre, SessionFormation

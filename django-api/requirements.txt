@@ -8,4 +8,5 @@ django-cors-headers~=4.7.0      # les deux fronts appellent depuis 3000 et 3001
 django-filter~=25.1             # filtres déclaratifs des listes (filiere, quartier, etape…)
 drf-spectacular~=0.28.0         # schéma OpenAPI et Swagger
 psycopg[binary]~=3.2.0          # pilote PostgreSQL de 3e génération
+argon2-cffi~=25.1.0             # hachage des mots de passe recommandé par Django
 python-dotenv~=1.1.0            # lecture du .env local

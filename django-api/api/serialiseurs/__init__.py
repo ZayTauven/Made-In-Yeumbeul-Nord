@@ -13,6 +13,12 @@ from .commerce import (
     CommandeSerializer,
     LigneCommandeSerializer,
 )
+from .comptes import (
+    ChangementMotDePasseSerializer,
+    ConnexionSerializer,
+    JetonCsrfSerializer,
+    ProfilSerializer,
+)
 from .contenus import ActualiteSerializer, EvenementJournalSerializer
 from .finances import (
     FinancementSerializer,
@@ -56,6 +62,11 @@ from .territoire import (
 
 __all__ = [
     "compteurs_referentiels",
+    # Comptes
+    "ProfilSerializer",
+    "ConnexionSerializer",
+    "ChangementMotDePasseSerializer",
+    "JetonCsrfSerializer",
     # Territoire
     "QuartierSerializer",
     "FiliereSerializer",
